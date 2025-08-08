@@ -1,4 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class QueueEntry {
@@ -19,4 +24,7 @@ export class QueueEntry {
 
   @CreateDateColumn()
   createdAt: Date;
+  
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  arrivalTime: Date;
 }

@@ -18,6 +18,7 @@ export default function QueuePage() {
   }, []);
 
   const addPatient = async () => {
+    if (!patientName.trim()) return;
     await API.post('/queue', { patientName, priority });
     setPatientName('');
     setPriority('Normal');
@@ -26,6 +27,18 @@ export default function QueuePage() {
 
   const updateStatus = async (id: string, status: string) => {
     await API.put(`/queue/${id}/status`, { status });
+    fetchQueue();
+  };
+
+  const deletePatient = async (id: string) => {
+    if (!confirm('Remove this patient from queue?')) return;
+    await API.delete(`/queue/${id}`);
+    fetchQueue();
+  };
+
+  const togglePriority = async (id: string, current: 'Normal' | 'High') => {
+    const newPriority = current === 'Normal' ? 'High' : 'Normal';
+    await API.put(`/queue/${id}/priority`, { priority: newPriority });
     fetchQueue();
   };
 
@@ -38,7 +51,6 @@ export default function QueuePage() {
           className="border p-2"
           value={patientName}
           onChange={(e) => setPatientName(e.target.value)}
-          required
         />
         <select
           className="border p-2"
@@ -58,6 +70,7 @@ export default function QueuePage() {
           <tr className="bg-gray-200">
             <th className="p-2">Queue #</th>
             <th>Patient</th>
+            <th>Arrival</th>
             <th>Status</th>
             <th>Priority</th>
             <th>Actions</th>
@@ -66,8 +79,9 @@ export default function QueuePage() {
         <tbody>
           {queue.map((entry) => (
             <tr key={entry.id}>
-              <td className="p-2">{entry.queueNumber}</td>
+              <td className="p-2">{entry.queueNumber > 0 ? entry.queueNumber : '-'}</td>
               <td>{entry.patientName}</td>
+              <td>{new Date(entry.arrivalTime).toLocaleString()}</td>
               <td>{entry.status}</td>
               <td>{entry.priority}</td>
               <td className="space-x-2">
@@ -82,6 +96,18 @@ export default function QueuePage() {
                   onClick={() => updateStatus(entry.id, 'Completed')}
                 >
                   Completed
+                </button>
+                <button
+                  className="bg-yellow-500 text-white px-2 py-1"
+                  onClick={() => togglePriority(entry.id, entry.priority)}
+                >
+                  Toggle Priority
+                </button>
+                <button
+                  className="bg-red-500 text-white px-2 py-1"
+                  onClick={() => deletePatient(entry.id)}
+                >
+                  Remove
                 </button>
               </td>
             </tr>

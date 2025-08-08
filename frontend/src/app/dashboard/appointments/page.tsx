@@ -1,20 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import API from '../../../lib/api';
+import { useEffect, useState } from "react";
+import API from "../../../lib/api";
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
-  const [form, setForm] = useState({ patientName: '', doctorId: '', timeSlot: '' });
+  const [form, setForm] = useState({
+    patientName: "",
+    doctorId: "",
+    timeSlot: "",
+  });
 
   const fetchAppointments = async () => {
-    const res = await API.get('/appointments');
+    const res = await API.get("/appointments");
     setAppointments(res.data);
   };
 
   const fetchDoctors = async () => {
-    const res = await API.get('/doctors');
+    const res = await API.get("/doctors");
     setDoctors(res.data);
   };
 
@@ -24,9 +28,14 @@ export default function AppointmentsPage() {
   }, []);
 
   const bookAppointment = async () => {
-    await API.post('/appointments', form);
-    setForm({ patientName: '', doctorId: '', timeSlot: '' });
-    fetchAppointments();
+    try {
+      await API.post("/appointments", form);
+      setForm({ patientName: "", doctorId: "", timeSlot: "" });
+      fetchAppointments();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Error booking appointment";
+      alert(msg);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -35,7 +44,7 @@ export default function AppointmentsPage() {
   };
 
   const reschedule = async (id: string) => {
-    const newTime = prompt('Enter new time slot (YYYY-MM-DDTHH:MM)');
+    const newTime = prompt("Enter new time slot (YYYY-MM-DDTHH:MM)");
     if (newTime) {
       await API.put(`/appointments/${id}/reschedule`, { timeSlot: newTime });
       fetchAppointments();
@@ -48,7 +57,7 @@ export default function AppointmentsPage() {
   };
 
   return (
-    <div className='text-black'>
+    <div className="text-black">
       <h2 className="text-2xl font-bold mb-4">Appointments</h2>
 
       <div className="mb-4 flex gap-2">
@@ -76,7 +85,10 @@ export default function AppointmentsPage() {
           value={form.timeSlot}
           onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
         />
-        <button onClick={bookAppointment} className="bg-green-500 text-white px-4 py-2">
+        <button
+          onClick={bookAppointment}
+          className="bg-green-500 text-white px-4 py-2"
+        >
           Book
         </button>
       </div>
@@ -101,7 +113,7 @@ export default function AppointmentsPage() {
               <td className="space-x-2">
                 <button
                   className="bg-blue-500 text-white px-2 py-1"
-                  onClick={() => updateStatus(appt.id, 'Completed')}
+                  onClick={() => updateStatus(appt.id, "Completed")}
                 >
                   Complete
                 </button>
