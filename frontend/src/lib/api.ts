@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: "https://api.vilas-cp.xyz", 
+  baseURL: process.env.NEXT_PUBLIC_API_URL, 
 });
 
 

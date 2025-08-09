@@ -16,30 +16,32 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isRegister, setIsRegister] = useState(false); // NEW toggle
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ 
+      setMousePosition({
         x: (e.clientX / window.innerWidth) * 100,
-        y: (e.clientY / window.innerHeight) * 100 
+        y: (e.clientY / window.innerHeight) * 100,
       });
     };
-    
+
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      const res = await API.post('/auth/login', { username, password });
+      const endpoint = isRegister ? '/auth/register' : '/auth/login';
+      const res = await API.post(endpoint, { username, password });
       localStorage.setItem('token', res.data.access_token);
       router.push('/dashboard/doctors');
-    } catch (err) {
-      setError('Invalid username or password');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -47,25 +49,25 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen relative bg-slate-50">
-      {/* Subtle Background Pattern */}
+      {/* Background Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-      
-      {/* Geometric Background Elements */}
+
+      {/* Geometric BG */}
       <div className="absolute inset-0 overflow-hidden">
-        <div 
+        <div
           className="absolute w-96 h-96 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full blur-3xl opacity-40"
           style={{
             left: `${20 + mousePosition.x * 0.02}%`,
             top: `${10 + mousePosition.y * 0.02}%`,
-            transition: 'all 2s ease-out'
+            transition: 'all 2s ease-out',
           }}
         />
-        <div 
+        <div
           className="absolute w-80 h-80 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full blur-3xl opacity-30"
           style={{
             right: `${15 + mousePosition.x * -0.02}%`,
             bottom: `${15 + mousePosition.y * -0.02}%`,
-            transition: 'all 2s ease-out'
+            transition: 'all 2s ease-out',
           }}
         />
       </div>
@@ -84,18 +86,21 @@ export default function LoginPage() {
             <p className="text-slate-600 font-medium">Front Desk Management System</p>
           </div>
 
-          {/* Login Card */}
+          {/* Card */}
           <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200/60 overflow-hidden">
-            {/* Card Header */}
             <div className="px-8 pt-8 pb-2">
-              <h2 className="text-xl font-semibold text-slate-900 mb-1">Welcome back</h2>
-              <p className="text-slate-500 text-sm">Please sign in to your account</p>
+              <h2 className="text-xl font-semibold text-slate-900 mb-1">
+                {isRegister ? 'Create Account' : 'Welcome back'}
+              </h2>
+              <p className="text-slate-500 text-sm">
+                {isRegister ? 'Register to get started' : 'Please sign in to your account'}
+              </p>
             </div>
 
-            {/* Form Content */}
-            <form onSubmit={handleLogin} className="px-8 pb-8">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="px-8 pb-8">
               <div className="space-y-5 mt-6">
-                {/* Error Alert */}
+                {/* Error */}
                 {error && (
                   <Alert className="border-red-200 bg-red-50 text-red-800">
                     <AlertCircle className="h-4 w-4" />
@@ -103,13 +108,15 @@ export default function LoginPage() {
                   </Alert>
                 )}
 
-                {/* Username Field */}
+                {/* Username */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Username</label>
                   <div className="relative">
-                    <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${
-                      focusedField === 'username' ? 'text-slate-900' : 'text-slate-400'
-                    }`} />
+                    <User
+                      className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${
+                        focusedField === 'username' ? 'text-slate-900' : 'text-slate-400'
+                      }`}
+                    />
                     <input
                       type="text"
                       placeholder="Enter username"
@@ -123,13 +130,15 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Password Field */}
+                {/* Password */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Password</label>
                   <div className="relative">
-                    <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${
-                      focusedField === 'password' ? 'text-slate-900' : 'text-slate-400'
-                    }`} />
+                    <Lock
+                      className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${
+                        focusedField === 'password' ? 'text-slate-900' : 'text-slate-400'
+                      }`}
+                    />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Enter password"
@@ -150,21 +159,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Options */}
-                {/* <div className="flex items-center justify-between pt-2">
-                  <label className="flex items-center text-sm text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
-                    <input 
-                      type="checkbox" 
-                      className="mr-3 w-4 h-4 text-slate-900 border-slate-300 rounded focus:ring-slate-900 focus:ring-2" 
-                    />
-                    Keep me signed in
-                  </label>
-                  <button className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                    Forgot password?
-                  </button>
-                </div> */}
-
-                {/* Login Button */}
+                {/* Submit */}
                 <button
                   type="submit"
                   disabled={isLoading || !username || !password}
@@ -174,20 +169,29 @@ export default function LoginPage() {
                     {isLoading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Signing in...</span>
+                        <span>{isRegister ? 'Registering...' : 'Signing in...'}</span>
                       </>
                     ) : (
                       <>
-                        <span>Sign In</span>
+                        <span>{isRegister ? 'Register' : 'Sign In'}</span>
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
                   </div>
                 </button>
 
-             
-
-             
+                {/* Toggle */}
+                <div className="text-center mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsRegister(!isRegister)}
+                    className="text-sm text-slate-600 hover:text-black hover:underline cursor-pointer"
+                  >
+                    {isRegister
+                      ? 'Already have an account? Login'
+                      : "Don't have an account? Register"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -208,7 +212,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="mt-8 text-center">
             <p className="text-xs text-slate-500">
-              Need help? Contact IT Support • 
+              Need help? Contact IT Support •{' '}
               <button className="ml-1 text-slate-600 hover:text-slate-900 transition-colors font-medium">
                 vilaspgowda1000@gmail.com
               </button>

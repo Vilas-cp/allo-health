@@ -11,13 +11,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const existing = await userService.findByUsername('frontdesk');
-  if (!existing) {
-    await userService.createUser('frontdesk', '123456');
-    console.log('✅ Created test user: frontdesk / 123456');
-  }
 
-  // ✅ allow EC2 access
   await app.listen(process.env.PORT || 3000, '0.0.0.0');
 }
 bootstrap();
