@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { QueueEntry } from './queue.entity';
 
 @Injectable()
@@ -12,15 +12,24 @@ export class QueueService {
 
   // Add patient with arrival time and then reorder
   async addPatient(patientName: string, priority: 'Normal' | 'High' = 'Normal') {
+    // Get max queueNumber currently - fixed findOne usage
+    const entries = await this.queueRepo.find({
+      order: { queueNumber: 'DESC' },
+      take: 1,
+    });
+    const maxQueueNumberEntry = entries[0];
+    const maxQueueNumber = maxQueueNumberEntry ? maxQueueNumberEntry.queueNumber : 0;
+
     const entry = this.queueRepo.create({
       patientName,
       priority,
       status: 'Waiting',
       arrivalTime: new Date(),
-      queueNumber: 0, // will be set in reorder
+      queueNumber: maxQueueNumber + 1, // assign next sequential number
     });
+
     await this.queueRepo.save(entry);
-    await this.reorderQueue();
+    // No reorder here on add (to keep queue order stable)
     return entry;
   }
 
@@ -40,33 +49,38 @@ export class QueueService {
     const entry = await this.queueRepo.findOne({ where: { id } });
     if (!entry) throw new NotFoundException('Queue entry not found');
     await this.queueRepo.remove(entry);
-    await this.reorderQueue();
+    await this.reorderQueue(); // reorder after delete to fix gaps
     return { success: true };
   }
 
-  
+  async searchPatientByName(name: string) {
+    return this.queueRepo.find({
+      where: {
+        patientName: ILike(`%${name}%`), // case-insensitive partial match
+      },
+      order: { queueNumber: 'ASC' },
+    });
+  }
+
   async updatePriority(id: string, priority: 'Normal' | 'High') {
     const entry = await this.queueRepo.findOne({ where: { id } });
     if (!entry) throw new NotFoundException('Queue entry not found');
     entry.priority = priority;
     await this.queueRepo.save(entry);
-    await this.reorderQueue();
+    // Don't reorder queueNumber on priority change, keep queueNumber fixed
     return entry;
   }
 
-  // Recompute queueNumber based on priority (High first) then arrivalTime
+  // Recompute queueNumber after deletion only
   private async reorderQueue() {
+    // Get all waiting patients ordered by their current queueNumber ascending
     const list = await this.queueRepo.find({
       where: { status: 'Waiting' },
-      order: {
-        priority: 'DESC', // High before Normal
-        createdAt: 'ASC', // earliest arrivals earlier within same priority
-      },
+      order: { queueNumber: 'ASC' },
     });
 
     let i = 1;
     for (const item of list) {
-      // Only update if changed to minimize writes
       if (item.queueNumber !== i) {
         item.queueNumber = i;
         await this.queueRepo.save(item);
@@ -74,8 +88,7 @@ export class QueueService {
       i++;
     }
 
-    // For entries not 'Waiting' (like With Doctor, Completed) we can leave their queueNumber as-is or set to 0.
-    // Optionally reset others:
+    // Reset queueNumber for non-waiting statuses
     const others = await this.queueRepo.find({
       where: [{ status: 'With Doctor' }, { status: 'Completed' }],
     });

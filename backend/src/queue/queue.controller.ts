@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Param, Body, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Param, Body, Delete, UseGuards, Query } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -17,6 +17,12 @@ export class QueueController {
   async getQueue() {
     return this.queueService.getQueue();
   }
+  
+  @Get('search')
+async searchPatient(@Query('name') name: string) {
+  return this.queueService.searchPatientByName(name);
+}
+
 
   @Put(':id/status')
   async updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
