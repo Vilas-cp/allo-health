@@ -2,15 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { UserService } from './user/user.service';
 
-
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const userService = app.get(UserService);
 
-
   app.enableCors({
-    origin: 'http://localhost:3001', 
+    origin: 'https://allo-health-teal.vercel.app', 
     credentials: true,
   });
 
@@ -20,6 +17,7 @@ async function bootstrap() {
     console.log('✅ Created test user: frontdesk / 123456');
   }
 
-  await app.listen(3000);
+  // ✅ allow EC2 access
+  await app.listen(process.env.PORT || 3000, '0.0.0.0');
 }
 bootstrap();
