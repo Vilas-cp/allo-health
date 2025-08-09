@@ -28,7 +28,7 @@ export class DoctorController {
 
   @Get()
   findAll() {
-    return this.doctorService.findAll();
+    return this.doctorService.findAllWithStatus();
   }
 
   @Get(':id')

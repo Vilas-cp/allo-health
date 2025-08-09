@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Appointment } from '../appointment/appointment.entity';
 
 @Entity()
 export class Doctor {
@@ -17,6 +18,14 @@ export class Doctor {
   @Column()
   location: string;
 
-  @Column('simple-array')
-  availability: string[];  // e.g., ["Monday 10am-12pm", "Tuesday 2pm-4pm"]
+  // Days available
+  @Column("simple-array")
+  availability: string[];
+
+
+  @Column('jsonb', { nullable: true })
+  workingHours: Record<string, string>; 
+
+  @OneToMany(() => Appointment, (appt) => appt.doctor)
+  appointments: Appointment[];
 }
