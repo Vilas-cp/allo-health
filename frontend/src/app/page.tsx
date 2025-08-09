@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isRegister, setIsRegister] = useState(false); // NEW toggle
+  const [isRegister, setIsRegister] = useState(false); 
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -47,7 +47,8 @@ export default function LoginPage() {
       const res = await API.post(endpoint, { username, password });
       localStorage.setItem('token', res.data.access_token);
       router.push('/dashboard/queue');
-    } catch (err: any) {
+    }// eslint-disable-next-line @typescript-eslint/no-explicit-any 
+    catch (err: any) {
       setError(err.response?.data?.message || 'Something went wrong');
     } finally {
       setIsLoading(false);
