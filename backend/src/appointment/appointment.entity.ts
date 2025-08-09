@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { Doctor } from '../doctor/doctor.entity';
 
 @Entity()
@@ -12,8 +18,8 @@ export class Appointment {
   @ManyToOne(() => Doctor, { eager: true })
   doctor: Doctor;
 
-  @Column()
-  timeSlot: string; // e.g., "2025-08-09T15:00"
+  @Column({ type: 'timestamp' })
+  timeSlot: Date;
 
   @Column()
   status: string; // "Booked", "Completed", "Cancelled"

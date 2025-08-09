@@ -14,7 +14,9 @@ export default function AppointmentsPage() {
 
   const fetchAppointments = async () => {
     const res = await API.get("/appointments");
-    setAppointments(res.data);
+    setAppointments(
+      res.data.map((a: any) => ({ ...a, showPicker: false, newTime: "" }))
+    );
   };
 
   const fetchDoctors = async () => {
@@ -29,25 +31,55 @@ export default function AppointmentsPage() {
 
   const bookAppointment = async () => {
     try {
+      if (!form.doctorId) {
+        alert("Please select a doctor before booking.");
+        return;
+      }
       await API.post("/appointments", form);
       setForm({ patientName: "", doctorId: "", timeSlot: "" });
       fetchAppointments();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || "Error booking appointment";
-      alert(msg);
+      alert(err?.response?.data?.message || "Error booking appointment");
+    }
+  };
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      const appt = appointments.find((a) => a.id === id);
+      if (!appt) return;
+
+      if (status === "Booked") {
+        try {
+          await API.post("/appointments/check", {
+            doctorId: appt.doctor.id,
+            timeSlot: appt.timeSlot,
+          });
+        } catch (err: any) {
+          alert(err?.response?.data?.message || "Time slot is not available");
+          return;
+        }
+      }
+
+      await API.put(`/appointments/${id}/status`, { status });
+      fetchAppointments();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Error updating status");
     }
   };
 
-  const updateStatus = async (id: string, status: string) => {
-    await API.put(`/appointments/${id}/status`, { status });
-    fetchAppointments();
-  };
+  const reschedule = async (id: string, newTime: string) => {
+    const now = new Date();
+    const selected = new Date(newTime);
 
-  const reschedule = async (id: string) => {
-    const newTime = prompt("Enter new time slot (YYYY-MM-DDTHH:MM)");
-    if (newTime) {
+    if (selected.getTime() < now.getTime()) {
+      alert("Please select a future time.");
+      return;
+    }
+
+    try {
       await API.put(`/appointments/${id}/reschedule`, { timeSlot: newTime });
       fetchAppointments();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Error rescheduling appointment");
     }
   };
 
@@ -56,10 +88,18 @@ export default function AppointmentsPage() {
     fetchAppointments();
   };
 
+  // Helper: Convert to datetime-local format
+  const formatForInput = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  };
+
   return (
     <div className="text-black">
       <h2 className="text-2xl font-bold mb-4">Appointments</h2>
 
+      {/* Booking Form */}
       <div className="mb-4 flex gap-2">
         <input
           placeholder="Patient Name"
@@ -93,6 +133,7 @@ export default function AppointmentsPage() {
         </button>
       </div>
 
+      {/* Appointment Table */}
       <table className="w-full bg-white shadow">
         <thead>
           <tr className="bg-gray-200">
@@ -108,26 +149,79 @@ export default function AppointmentsPage() {
             <tr key={appt.id}>
               <td>{appt.patientName}</td>
               <td>{appt.doctor.name}</td>
-              <td>{appt.timeSlot}</td>
-              <td>{appt.status}</td>
-              <td className="space-x-2">
-                <button
-                  className="bg-blue-500 text-white px-2 py-1"
-                  onClick={() => updateStatus(appt.id, "Completed")}
+              <td>{new Date(appt.timeSlot).toLocaleString()}</td>
+              <td>
+                <select
+                  className="border p-1"
+                  value={appt.status}
+                  onChange={(e) => updateStatus(appt.id, e.target.value)}
                 >
-                  Complete
-                </button>
-                <button
-                  className="bg-yellow-500 text-white px-2 py-1"
-                  onClick={() => reschedule(appt.id)}
-                >
-                  Reschedule
-                </button>
+                  <option value="Booked">Booked</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </td>
+              <td className="flex gap-2">
+                {!appt.showPicker ? (
+                  <button
+                    className="bg-yellow-500 text-white px-2 py-1"
+                    onClick={() =>
+                      setAppointments((prev) =>
+                        prev.map((a) =>
+                          a.id === appt.id
+                            ? {
+                                ...a,
+                                showPicker: true,
+                                newTime: formatForInput(appt.timeSlot),
+                              }
+                            : a
+                        )
+                      )
+                    }
+                  >
+                    Reschedule
+                  </button>
+                ) : (
+                  <>
+                    <input
+                      type="datetime-local"
+                      className="border p-1"
+                      value={appt.newTime}
+                      onChange={(e) =>
+                        setAppointments((prev) =>
+                          prev.map((a) =>
+                            a.id === appt.id
+                              ? { ...a, newTime: e.target.value }
+                              : a
+                          )
+                        )
+                      }
+                    />
+                    <button
+                      className="bg-green-500 text-white px-2 py-1"
+                      onClick={() => reschedule(appt.id, appt.newTime)}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="bg-gray-500 text-white px-2 py-1"
+                      onClick={() =>
+                        setAppointments((prev) =>
+                          prev.map((a) =>
+                            a.id === appt.id ? { ...a, showPicker: false } : a
+                          )
+                        )
+                      }
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
                 <button
                   className="bg-red-500 text-white px-2 py-1"
                   onClick={() => cancel(appt.id)}
                 >
-                  Cancel
+                  Cancel Appointment
                 </button>
               </td>
             </tr>

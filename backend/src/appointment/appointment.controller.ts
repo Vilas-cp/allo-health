@@ -4,9 +4,11 @@ import { AppointmentService } from './appointment.service';
 @Controller('appointments')
 export class AppointmentController {
   constructor(private service: AppointmentService) {}
-
+  
   @Post()
-  async book(@Body() body: { patientName: string; doctorId: string; timeSlot: string }) {
+  async book(
+    @Body() body: { patientName: string; doctorId: string; timeSlot: string },
+  ) {
     return this.service.bookAppointment(body);
   }
 
@@ -14,14 +16,21 @@ export class AppointmentController {
   async getAll() {
     return this.service.getAllAppointments();
   }
+  @Post('check')
+  async checkAvailability(@Body() body: { doctorId: string; timeSlot: string }) {
+    return this.service.checkAvailability(body.doctorId, body.timeSlot);
+  }
 
   @Put(':id/status')
-  async updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.service.updateStatus(id, body.status);
+  async updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.service.updateStatus(id, status);
   }
 
   @Put(':id/reschedule')
-  async reschedule(@Param('id') id: string, @Body() body: { timeSlot: string }) {
+  async reschedule(
+    @Param('id') id: string,
+    @Body() body: { timeSlot: string },
+  ) {
     return this.service.reschedule(id, body.timeSlot);
   }
 

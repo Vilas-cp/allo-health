@@ -25,6 +25,18 @@ export default function DoctorsPage() {
     fetchDoctors();
   };
 
+  const viewSchedule = async (id: string) => {
+    const res = await API.get(`/doctors/${id}/schedule`);
+    const data = res.data;
+    if (data.error) return alert(data.error);
+    const upcoming =
+      data.upcoming
+        .map((a: any) => `${new Date(a.timeSlot).toLocaleString()} - ${a.patientName}`)
+        .join('\n') || 'No upcoming';
+    const status = data.isFreeNow ? 'Free now' : `Busy for ${data.timeUntilFreeMinutes} min`;
+    alert(`Doctor: ${data.doctor.name}\nStatus: ${status}\nUpcoming:\n${upcoming}`);
+  };
+
   return (
     <div className='text-black'>
       <h2 className="text-2xl font-bold mb-4">Doctors</h2>
@@ -44,6 +56,7 @@ export default function DoctorsPage() {
             <th>Gender</th>
             <th>Location</th>
             <th>Availability</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -54,6 +67,14 @@ export default function DoctorsPage() {
               <td>{doc.gender}</td>
               <td>{doc.location}</td>
               <td>{doc.availability.join(', ')}</td>
+              <td>
+                <button
+                  onClick={() => viewSchedule(doc.id)}
+                  className="bg-blue-500 text-white px-3 py-1 rounded"
+                >
+                  View Schedule
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
