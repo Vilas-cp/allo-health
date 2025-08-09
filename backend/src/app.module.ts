@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { DoctorModule } from './doctor/doctor.module';
 import { QueueModule } from './queue/queue.module';
@@ -33,5 +35,7 @@ import { AppointmentModule } from './appointment/appointment.module';
     QueueModule,
     AppointmentModule,
   ],
+  controllers: [AppController],  // add this
+  providers: [AppService],       // add this
 })
 export class AppModule {}
