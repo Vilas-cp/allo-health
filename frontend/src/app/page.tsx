@@ -15,7 +15,7 @@ export default function LoginPage() {
     try {
       const res = await API.post('/auth/login', { username, password });
       localStorage.setItem('token', res.data.access_token);
-      router.push('/dashboard');
+      router.push('/dashboard/doctors');
     } catch (err) {
       setError('Invalid username or password');
     }

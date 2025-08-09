@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import API from "../../../lib/api";
+import { useRouter } from "next/navigation";
 
 const daysOfWeek = [
   "Sunday",
@@ -27,6 +28,7 @@ type DoctorForm = {
 
 export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<any[]>([]);
+    const router = useRouter();
   const [upcomingMap, setUpcomingMap] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
 
