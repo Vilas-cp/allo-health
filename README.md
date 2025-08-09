@@ -37,7 +37,20 @@ Backend:
 *   Hosted on AWS EC2
     
 
-📂 Project Structureclinic/│├── backend/ # NestJS backend (AWS hosted)│ ├── src/│ ├── dist/│ └── package.json│├── frontend/ # Next.js frontend│ ├── app/│ ├── components/│ └── package.json│└── README.md
+📂 Project Structure
+clinic/
+│
+├── backend/ # NestJS backend (AWS hosted)
+│ ├── src/
+│ ├── dist/
+│ └── package.json
+│
+├── frontend/ # Next.js frontend
+│ ├── app/
+│ ├── components/
+│ └── package.json
+│
+└── README.md
 
 ⚙️ Running the Project Locally
 
