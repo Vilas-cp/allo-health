@@ -92,11 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <h1 className="text-lg font-semibold text-slate-800">Dashboard Overview</h1>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-              <UserRound className="w-4 h-4 text-slate-600" />
-            </div>
-          </div>
+          
         </header>
 
         {/* Page Content */}

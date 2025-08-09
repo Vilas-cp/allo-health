@@ -3,6 +3,47 @@
 import { useEffect, useState } from "react";
 import API from "../../../lib/api";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Calendar, Clock, MapPin, User, Stethoscope, Plus, Search, Eye, Edit, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const daysOfWeek = [
   "Sunday",
@@ -20,17 +61,18 @@ type DoctorForm = {
   gender: string;
   location: string;
   availability: string[];
-  workingHours: Record<
-    string,
-    { start: string; end: string } // time picker format
-  >;
+  workingHours: Record<string, { start: string; end: string }>;
 };
 
 export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<any[]>([]);
-    const router = useRouter();
+  const router = useRouter();
   const [upcomingMap, setUpcomingMap] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [scheduleData, setScheduleData] = useState<any>(null);
 
   const [form, setForm] = useState<DoctorForm>({
     name: "",
@@ -51,7 +93,6 @@ export default function DoctorsPage() {
     workingHours: {},
   });
 
-  // Convert backend workingHours string "09:00-17:00" to {start,end} object
   const parseWorkingHours = (
     wh: Record<string, string>
   ): Record<string, { start: string; end: string }> => {
@@ -66,7 +107,6 @@ export default function DoctorsPage() {
     return parsed;
   };
 
-  // Convert {start,end} object to backend string format "09:00-17:00"
   const serializeWorkingHours = (
     wh: Record<string, { start: string; end: string }>
   ): Record<string, string> => {
@@ -79,7 +119,6 @@ export default function DoctorsPage() {
     return serialized;
   };
 
-  // Fetch doctors + parse working hours to {start,end} format
   const fetchDoctors = async () => {
     try {
       const res = await API.get("/doctors");
@@ -103,6 +142,7 @@ export default function DoctorsPage() {
       setUpcomingMap(map);
     } catch (error) {
       console.error("Failed to fetch doctors", error);
+      toast.error("Failed to fetch doctors");
     }
   };
 
@@ -110,7 +150,6 @@ export default function DoctorsPage() {
     fetchDoctors();
   }, []);
 
-  // Toggle day availability + clear working hours if unchecked
   const toggleDay = (
     day: string,
     currentAvailability: string[],
@@ -128,30 +167,21 @@ export default function DoctorsPage() {
     }
   };
 
-  // Validate form data
   const validateForm = (data: DoctorForm) => {
     if (!data.name.trim()) {
-      alert("Please enter doctor's name");
+      toast.error("Please enter doctor's name");
       return false;
     }
     for (const day of data.availability) {
       const wh = data.workingHours[day];
-      if (
-        !wh ||
-        !wh.start ||
-        !wh.end ||
-        wh.start >= wh.end // start must be before end
-      ) {
-        alert(
-          `Please enter valid start and end times for ${day} (start must be before end)`
-        );
+      if (!wh || !wh.start || !wh.end || wh.start >= wh.end) {
+        toast.error(`Please enter valid start and end times for ${day} (start must be before end)`);
         return false;
       }
     }
     return true;
   };
 
-  // Add doctor
   const addDoctor = async () => {
     if (!validateForm(form)) return;
     try {
@@ -167,55 +197,41 @@ export default function DoctorsPage() {
         availability: [],
         workingHours: {},
       });
+      setIsAddDialogOpen(false);
       fetchDoctors();
+      toast.success("Doctor added successfully");
     } catch (error) {
-      alert("Failed to add doctor");
+      toast.error("Failed to add doctor");
       console.error(error);
     }
   };
 
-  // Delete doctor
   const deleteDoctor = async (id: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this doctor? His future appointments will also be deleted if you delete the doctor."
-      )
-    )
-      return;
     try {
       await API.delete(`/doctors/${id}`);
       fetchDoctors();
+      toast.success("Doctor deleted successfully");
     } catch (error) {
-      alert("Failed to delete doctor");
+      toast.error("Failed to delete doctor");
       console.error(error);
     }
   };
 
-  // View schedule
   const viewSchedule = async (id: string) => {
     try {
       const res = await API.get(`/doctors/${id}/schedule`);
       const data = res.data;
-      if (data.error) return alert(data.error);
-      const upcoming =
-        data.upcoming
-          .map(
-            (a: any) =>
-              `${new Date(a.timeSlot).toLocaleString()} - ${a.patientName}`
-          )
-          .join("\n") || "No upcoming";
-      const status = data.isFreeNow
-        ? "Free now"
-        : `Busy for ${data.timeUntilFreeMinutes} min`;
-      alert(
-        `Doctor: ${data.doctor.name}\nStatus: ${status}\nUpcoming:\n${upcoming}`
-      );
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+      setScheduleData(data);
+      setIsScheduleDialogOpen(true);
     } catch {
-      alert("Failed to fetch schedule");
+      toast.error("Failed to fetch schedule");
     }
   };
 
-  // Start editing - convert workingHours to {start,end}
   const startEdit = (doc: any) => {
     setEditingDoctorId(doc.id);
     setEditForm({
@@ -226,13 +242,9 @@ export default function DoctorsPage() {
       availability: doc.availability || [],
       workingHours: doc.workingHours || {},
     });
+    setIsEditDialogOpen(true);
   };
 
-  const cancelEdit = () => {
-    setEditingDoctorId(null);
-  };
-
-  // Save edited doctor
   const saveDoctor = async () => {
     if (!editingDoctorId) return;
     if (!validateForm(editForm)) return;
@@ -242,14 +254,15 @@ export default function DoctorsPage() {
         workingHours: serializeWorkingHours(editForm.workingHours),
       });
       setEditingDoctorId(null);
+      setIsEditDialogOpen(false);
       fetchDoctors();
+      toast.success("Doctor updated successfully");
     } catch (error) {
-      alert("Failed to update doctor");
+      toast.error("Failed to update doctor");
       console.error(error);
     }
   };
 
-  // Filter doctors by search
   const filteredDoctors = doctors.filter((doc) => {
     const term = search.toLowerCase();
     return (
@@ -259,7 +272,6 @@ export default function DoctorsPage() {
     );
   });
 
-  // Availability + time picker inputs for Add/Edit forms
   const AvailabilityHoursInput = ({
     availability,
     workingHours,
@@ -272,290 +284,443 @@ export default function DoctorsPage() {
     setWorkingHours: (wh: Record<string, { start: string; end: string }>) => void;
   }) => {
     return (
-      <>
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <span className="font-medium">Availability:</span>
-          {daysOfWeek.map((day) => (
-            <label
-              key={day}
-              className="inline-flex items-center gap-1 cursor-pointer select-none"
-            >
-              <input
-                type="checkbox"
-                checked={availability.includes(day)}
-                onChange={() =>
-                  toggleDay(day, availability, workingHours, setAvailability, setWorkingHours)
-                }
-              />
-              {day}
-            </label>
-          ))}
+      <div className="space-y-4">
+        <div>
+          <Label className="text-base font-medium mb-3 block">Available Days</Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {daysOfWeek.map((day) => (
+              <div key={day} className="flex items-center space-x-2">
+                <Checkbox
+                  id={day}
+                  checked={availability.includes(day)}
+                  onCheckedChange={() =>
+                    toggleDay(day, availability, workingHours, setAvailability, setWorkingHours)
+                  }
+                />
+                <Label htmlFor={day} className="text-sm font-normal cursor-pointer">
+                  {day}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="grid  max-w-md">
-          {availability.map((day) => (
-            <div key={day} className="flex items-center gap-2 pt-2">
-              <label className="w-20">{day}:</label>
-              <input
-                type="time"
-                className="border p-1 rounded flex-1"
-                value={workingHours[day]?.start || ""}
-                onChange={(e) =>
-                  setWorkingHours({
-                    ...workingHours,
-                    [day]: {
-                      start: e.target.value,
-                      end: workingHours[day]?.end || "",
-                    },
-                  })
-                }
-              />
-              <span className="font-semibold">to</span>
-              <input
-                type="time"
-                className="border p-1 rounded flex-1"
-                value={workingHours[day]?.end || ""}
-                onChange={(e) =>
-                  setWorkingHours({
-                    ...workingHours,
-                    [day]: {
-                      start: workingHours[day]?.start || "",
-                      end: e.target.value,
-                    },
-                  })
-                }
-              />
+        {availability.length > 0 && (
+          <div>
+            <Label className="text-base font-medium mb-3 block">Working Hours</Label>
+            <div className="space-y-3">
+              {availability.map((day) => (
+                <div key={day} className="flex items-center gap-3 p-3 border rounded-lg">
+                  <Label className="w-20 text-sm font-medium">{day}</Label>
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      type="time"
+                      className="flex-1"
+                      value={workingHours[day]?.start || ""}
+                      onChange={(e) =>
+                        setWorkingHours({
+                          ...workingHours,
+                          [day]: {
+                            start: e.target.value,
+                            end: workingHours[day]?.end || "",
+                          },
+                        })
+                      }
+                    />
+                    <span className="text-sm text-muted-foreground">to</span>
+                    <Input
+                      type="time"
+                      className="flex-1"
+                      value={workingHours[day]?.end || ""}
+                      onChange={(e) =>
+                        setWorkingHours({
+                          ...workingHours,
+                          [day]: {
+                            start: workingHours[day]?.start || "",
+                            end: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </>
+          </div>
+        )}
+      </div>
     );
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Available":
+        return <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">Available</Badge>;
+      case "Busy":
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Busy</Badge>;
+      default:
+        return <Badge variant="destructive" className="bg-red-400">Unavailable</Badge>;
+    }
+  };
+
   return (
-    <div className="text-black p-4 relative">
-      <h2 className="text-2xl font-bold mb-4">Doctors</h2>
-
-      {/* Search bar */}
-      <div className="mb-4 flex gap-2">
-        <input
-          placeholder="Search by name, specialization, or location"
-          className="border p-2 flex-1 rounded"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      {/* Add Doctor Form */}
-      <div className="mb-6 border p-4 rounded shadow space-y-3 max-w-4xl">
-        <h3 className="font-semibold text-lg">Add New Doctor</h3>
-        <div className="flex flex-wrap gap-2">
-          <input
-            placeholder="Name"
-            className="border p-2 flex-1 rounded"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-          <input
-            placeholder="Specialization"
-            className="border p-2 flex-1 rounded"
-            value={form.specialization}
-            onChange={(e) =>
-              setForm({ ...form, specialization: e.target.value })
-            }
-          />
-          <input
-            placeholder="Gender"
-            className="border p-2 flex-1 rounded"
-            value={form.gender}
-            onChange={(e) => setForm({ ...form, gender: e.target.value })}
-          />
-          <input
-            placeholder="Location"
-            className="border p-2 flex-1 rounded"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-          />
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Doctors Management</h1>
+          <p className="text-muted-foreground">Manage doctor profiles and schedules</p>
         </div>
-
-        <AvailabilityHoursInput
-          availability={form.availability}
-          workingHours={form.workingHours}
-          setAvailability={(arr) =>
-            setForm((prev) => ({ ...prev, availability: arr }))
-          }
-          setWorkingHours={(wh) =>
-            setForm((prev) => ({ ...prev, workingHours: wh }))
-          }
-        />
-
-        <button
-          onClick={addDoctor}
-          className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition"
-        >
-          Add Doctor
-        </button>
-      </div>
-
-      {/* Doctors Table */}
-      <table className="w-full bg-white shadow rounded overflow-hidden max-w-7xl mx-auto">
-        <thead>
-          <tr className="bg-gray-200 text-left">
-            <th className="p-2">Name</th>
-            <th>Status</th>
-            <th>Specialization</th>
-            <th>Gender</th>
-            <th>Location</th>
-            <th>Availability</th>
-            <th className="text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredDoctors.length === 0 && (
-            <tr>
-              <td colSpan={7} className="text-center p-4 text-gray-600">
-                No doctors found.
-              </td>
-            </tr>
-          )}
-
-          {filteredDoctors.map((doc) => (
-            <tr key={doc.id} className="border-t">
-              <td className="p-2">{doc.name}</td>
-              <td className="p-2">
-                <span
-                  className={`px-2 py-1 rounded text-white ${
-                    doc.status === "Available"
-                      ? "bg-green-600"
-                      : doc.status === "Busy"
-                      ? "bg-yellow-500"
-                      : "bg-red-600"
-                  }`}
-                >
-                  {doc.status}
-                </span>
-                <div className="text-xs text-gray-600">{doc.nextAvailable}</div>
-              </td>
-              <td className="p-2">{doc.specialization}</td>
-              <td className="p-2">{doc.gender}</td>
-              <td className="p-2">{doc.location}</td>
-              <td className="p-2 max-w-xs text-sm text-gray-700">
-                {doc.availability
-                  .map(
-                    (day: string) =>
-                      `${day}: ${
-                        doc.workingHours?.[day]
-                          ? `${doc.workingHours[day].start} - ${doc.workingHours[day].end}`
-                          : "N/A"
-                      }`
-                  )
-                  .join(", ")}
-              </td>
-              <td className="p-2 space-x-2 text-center whitespace-nowrap">
-                <button
-                  onClick={() => viewSchedule(doc.id)}
-                  className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-                >
-                  View Schedule
-                </button>
-                <button
-                  onClick={() => startEdit(doc)}
-                  className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => deleteDoctor(doc.id)}
-                  className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Edit Modal */}
-      {editingDoctorId && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
-            onClick={cancelEdit}
-          />
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div
-              className="bg-white rounded shadow max-w-3xl w-full p-6 relative overflow-y-auto max-h-[90vh]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="font-semibold text-xl mb-4">Edit Doctor</h3>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <input
-                  placeholder="Name"
-                  className="border p-2 flex-1 rounded"
-                  value={editForm.name}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                />
-                <input
-                  placeholder="Specialization"
-                  className="border p-2 flex-1 rounded"
-                  value={editForm.specialization}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({
-                      ...prev,
-                      specialization: e.target.value,
-                    }))
-                  }
-                />
-                <input
-                  placeholder="Gender"
-                  className="border p-2 flex-1 rounded"
-                  value={editForm.gender}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, gender: e.target.value }))
-                  }
-                />
-                <input
-                  placeholder="Location"
-                  className="border p-2 flex-1 rounded"
-                  value={editForm.location}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, location: e.target.value }))
-                  }
-                />
+        
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2 bg-black text-white">
+              <Plus className="h-4 w-4" />
+              Add Doctor
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Add New Doctor
+              </DialogTitle>
+              <DialogDescription>
+                Enter the doctor's information and availability schedule.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="Dr. Anitha"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="specialization">Specialization</Label>
+                  <Input
+                    id="specialization"
+                    placeholder="Cardiology"
+                    value={form.specialization}
+                    onChange={(e) => setForm({ ...form, specialization: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Input
+                    id="gender"
+                    placeholder="Male/Female"
+                    value={form.gender}
+                    onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    placeholder="Bengaluru"
+                    value={form.location}
+                    onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  />
+                </div>
               </div>
 
               <AvailabilityHoursInput
-                availability={editForm.availability}
-                workingHours={editForm.workingHours}
-                setAvailability={(arr) =>
-                  setEditForm((prev) => ({ ...prev, availability: arr }))
-                }
-                setWorkingHours={(wh) =>
-                  setEditForm((prev) => ({ ...prev, workingHours: wh }))
-                }
+                availability={form.availability}
+                workingHours={form.workingHours}
+                setAvailability={(arr) => setForm((prev) => ({ ...prev, availability: arr }))}
+                setWorkingHours={(wh) => setForm((prev) => ({ ...prev, workingHours: wh }))}
               />
 
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  onClick={saveDoctor}
-                  className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={cancelEdit}
-                  className="bg-gray-400 text-white px-5 py-2 rounded hover:bg-gray-500 transition"
-                >
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
-                </button>
+                </Button>
+                <Button onClick={addDoctor} className="bg-black text-white">Add Doctor</Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search doctors by name, specialization, or location..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10 bg-white"
+        />
+      </div>
+
+      {/* Doctors Table */}
+      <Card className="border-none shadow-none ">
+        <CardHeader>
+          <CardTitle>All Doctors</CardTitle>
+          <CardDescription>
+            {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table className="bg-white rounded-2xl border border-black overflow-hidden text-base ">
+            <TableHeader className="bg-[#f8f8f8]">
+              <TableRow>
+                <TableHead>Doctor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Specialization</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Availability</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDoctors.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No doctors found. Add a new doctor to get started.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredDoctors.map((doc) => (
+                  <TableRow key={doc.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{doc.name}</p>
+                          <p className="text-sm text-muted-foreground">{doc.gender}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {getStatusBadge(doc.status)}
+                        {doc.nextAvailable && (
+                          <p className="text-xs text-muted-foreground">{doc.nextAvailable}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                        <span>{doc.specialization}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span>{doc.location}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm space-y-1 max-w-xs">
+                        {doc.availability?.slice(0, 2).map((day: string) => (
+                          <div key={day} className="flex items-center gap-2">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs">
+                              {day}: {doc.workingHours?.[day] 
+                                ? `${doc.workingHours[day].start} - ${doc.workingHours[day].end}`
+                                : "N/A"}
+                            </span>
+                          </div>
+                        ))}
+                        {doc.availability?.length > 2 && (
+                          <p className="text-xs text-muted-foreground">+{doc.availability.length - 2} more</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewSchedule(doc.id)}
+                          className="h-8 w-28 bg-black text-white p-0"
+                        >
+                          Schedule
+                          <Eye className="h-4 w-4"/>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEdit(doc)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog >
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-white">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Doctor</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this doctor? This action cannot be undone and will also delete all future appointments.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteDoctor(doc.id)}
+                                className="bg-red-600 cursor-pointer text-white"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Doctor
+            </DialogTitle>
+            <DialogDescription>
+              Update the doctor's information and availability schedule.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Full Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-specialization">Specialization</Label>
+                <Input
+                  id="edit-specialization"
+                  value={editForm.specialization}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, specialization: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-gender">Gender</Label>
+                <Input
+                  id="edit-gender"
+                  value={editForm.gender}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, gender: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-location">Location</Label>
+                <Input
+                  id="edit-location"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, location: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <AvailabilityHoursInput
+              availability={editForm.availability}
+              workingHours={editForm.workingHours}
+              setAvailability={(arr) => setEditForm((prev) => ({ ...prev, availability: arr }))}
+              setWorkingHours={(wh) => setEditForm((prev) => ({ ...prev, workingHours: wh }))}
+            />
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveDoctor} className="bg-black text-white">Save Changes</Button>
+            </div>
           </div>
-        </>
-      )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Dialog */}
+      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <DialogContent className="max-w-3xl bg-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Doctor Schedule
+            </DialogTitle>
+            <DialogDescription>
+              Current schedule and upcoming appointments
+            </DialogDescription>
+          </DialogHeader>
+          {scheduleData && (
+            <div className="space-y-6 py-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">{scheduleData.doctor?.name}</CardTitle>
+                  <div className="flex items-center gap-4">
+                    <Badge variant={scheduleData.isFreeNow ? "default" : "secondary"} className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${scheduleData.isFreeNow ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                      {scheduleData.isFreeNow ? "Available Now" : `Busy for ${scheduleData.timeUntilFreeMinutes} minutes`}
+                    </Badge>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Upcoming Appointments
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {scheduleData.upcoming && scheduleData.upcoming.length > 0 ? (
+                    <div className="space-y-3 max-h-[170px] overflow-y-scroll">
+                      {scheduleData.upcoming.map((appointment: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <User className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{appointment.patientName}</p>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                <span>{new Date(appointment.timeSlot).toLocaleDateString()}</span>
+                                <Clock className="h-4 w-4" />
+                                <span>{new Date(appointment.timeSlot).toLocaleTimeString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No upcoming appointments</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
