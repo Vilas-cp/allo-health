@@ -1,170 +1,113 @@
+🏥 Clinic Front Desk Management SystemA full-stack Healthcare Front Desk Management System that helps clinics manage doctors, patients, appointments, and queues efficiently.The backend is powered by NestJS and hosted on AWS, and the frontend is built with Next.js.The database is hosted on Supabase PostgreSQL.
 
-md
-Copy
-Edit
-# 🏥 Clinic Front Desk Management System
+🚀 Features
 
-A full-stack **Healthcare Front Desk Management System** that allows front desk staff to manage doctors, appointments, queues, and patient interactions.  
-Built with **Next.js (Frontend)**, **NestJS (Backend)**, and **PostgreSQL** (Supabase hosted).
+*   User Authentication — Login & Registration using JWT.
+    
+*   Doctor Management — Add, edit, delete doctors.
+    
+*   Real-Time Availability — Check doctor availability and next available slot.
+    
+*   Appointment Management — Book, cancel, reschedule with time clash prevention.
+    
+*   Queue Tracking — Monitor patients waiting in real time.
+    
 
----
+🛠 Tech Stack
 
-## 🚀 Features
+Frontend:
 
-### **Authentication**
-- User login & registration (JWT-based)
-- Secure password hashing using bcrypt
+*   Next.js
+    
+*   TailwindCSS
+    
+*   Axios
+    
+*   Lucide Icons
+    
 
-### **Doctors Management**
-- Add, edit, delete doctors
-- Real-time availability check
-- Next available time & status badges
+Backend:
 
-### **Appointments**
-- Book, cancel, and reschedule appointments
-- Prevents time clashes
-- View daily schedules per doctor
+*   NestJS
+    
+*   TypeORM
+    
+*   PostgreSQL (Supabase)
+    
+*   Hosted on AWS EC2
+    
 
-### **Queue Management**
-- Track patient waiting queue
-- Real-time updates
+📂 Project Structureclinic/│├── backend/ # NestJS backend (AWS hosted)│ ├── src/│ ├── dist/│ └── package.json│├── frontend/ # Next.js frontend│ ├── app/│ ├── components/│ └── package.json│└── README.md
 
----
+⚙️ Running the Project Locally
 
-## 🛠 Tech Stack
+In production, the backend API runs on AWS.These steps let you run both backend and frontend locally for development.
 
-**Frontend**
-- Next.js
-- TailwindCSS
-- Axios
-- Lucide Icons
+1️⃣ Clone the Repositorygit clone [https://github.com/your-username/clinic.git](https://github.com/your-username/clinic.git)cd clinic
 
-**Backend**
-- NestJS
-- TypeORM
-- PostgreSQL (Supabase)
+2️⃣ Backend Setup (NestJS)cd backendnpm install
 
----
+Create .env inside the backend folder:DB\_HOST=DB\_PORT=DB\_USERNAME=DB\_PASSWORD=DB\_NAME=JWT\_SECRET=
 
-## 📂 Project Structure
+Run the backend:npm run start:devBackend runs on [http://localhost:3000](http://localhost:3000)
 
-clinic/
-│
-├── backend/ # NestJS backend
-│ ├── src/
-│ ├── dist/
-│ └── package.json
-│
-├── frontend/ # Next.js frontend
-│ ├── app/
-│ ├── components/
-│ └── package.json
-│
-└── README.md
+3️⃣ Frontend Setup (Next.js)cd ../frontendnpm install
 
-yaml
-Copy
-Edit
+Create .env.local inside the frontend folder:
 
----
+For Local BackendNEXT\_PUBLIC\_API\_URL=[http://localhost:3000](http://localhost:3000)
 
-## ⚙️ Local Setup
+(Optional) For AWS BackendNEXT\_PUBLIC\_API\_URL=https://your-aws-backend-url.com
 
-### **1. Clone the Repository**
-```bash
-git clone https://github.com/your-username/clinic.git
-cd clinic
-2. Backend Setup (NestJS)
-Navigate to backend
+Run the frontend:npm run devFrontend runs on [http://localhost:3001](http://localhost:3001) (or next available port).
 
-bash
-Copy
-Edit
-cd backend
-Install dependencies
+📌 Main API Endpoints
 
-bash
-Copy
-Edit
-npm install
-Create .env file in backend folder:
+Auth:
 
-env
-Copy
-Edit
-DB_HOST=db.bhfthummtpkuttfzqhtw.supabase.co
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=ck8nExTZ7idPIdWE
-DB_NAME=postgres
-JWT_SECRET=super_secret_key
-Run backend
+*   POST /auth/register → Register a new user
+    
+*   POST /auth/login → Login and get JWT token
+    
 
-bash
-Copy
-Edit
-npm run start:dev
-Backend will run on http://localhost:3000
+Doctors:
 
-3. Frontend Setup (Next.js)
-Navigate to frontend
+*   GET /doctors → List all doctors
+    
+*   POST /doctors → Add new doctor
+    
+*   DELETE /doctors/:id → Delete doctor
+    
+*   GET /doctors/:id/schedule → Check doctor's availability
+    
 
-bash
-Copy
-Edit
-cd ../frontend
-Install dependencies
+Appointments:
 
-bash
-Copy
-Edit
-npm install
-Create .env.local in frontend folder:
-
-env
-Copy
-Edit
-NEXT_PUBLIC_API_URL=http://localhost:3000
-Run frontend
-
-bash
-Copy
-Edit
-npm run dev
-Frontend will run on http://localhost:3001 (or next available port).
-
-📌 API Endpoints
-Auth
-POST /auth/register → Register a new user
-
-POST /auth/login → Login and get JWT token
-
-Doctors
-GET /doctors → Get all doctors
-
-POST /doctors → Add doctor
-
-DELETE /doctors/:id → Delete doctor
-
-GET /doctors/:id/schedule → Get doctor's availability
-
-Appointments
-POST /appointments → Create appointment
-
-PATCH /appointments/:id/reschedule → Reschedule appointment
-
-GET /appointments/check → Check availability
+*   POST /appointments → Book appointment
+    
+*   PATCH /appointments/:id/reschedule → Reschedule
+    
+*   GET /appointments/check → Check availability
+    
 
 🔒 Security
-All passwords hashed using bcrypt
 
-JWT authentication for protected routes
+*   bcrypt password hashing
+    
+*   JWT authentication for protected APIs
+    
+*   CORS enabled for frontend-backend communication
+    
 
-CORS enabled for frontend-backend communication
+🌐 Production Info
 
-👨‍💻 Author
-Vilas C.P
-📧 Email: vilaspgowda1000@gmail.com
+*   Backend: Hosted on AWS EC2
+    
+*   Database: Supabase PostgreSQL
+    
+*   Frontend: Can be hosted on Vercel/Netlify (connects to AWS backend)
+    
 
-📜 License
-MIT License
+👨‍💻 AuthorVilas C.P📧 vilaspgowda1000@gmail.com
+
+📜 LicenseMIT License
