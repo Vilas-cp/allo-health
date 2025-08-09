@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -21,6 +21,10 @@ export class AppointmentController {
   @Post('check')
   async checkAvailability(@Body() body: { doctorId: string; timeSlot: string }) {
     return this.service.checkAvailability(body.doctorId, body.timeSlot);
+  }
+   @Get('search')
+  async searchAppointments(@Query('name') name: string) {
+    return this.service.searchAppointmentsByPatientName(name);
   }
 
   @Put(':id/status')

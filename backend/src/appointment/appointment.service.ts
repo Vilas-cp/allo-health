@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Appointment } from './appointment.entity';
-import { Repository, Not, Between } from 'typeorm';
+import { Repository, Not, Between, ILike } from 'typeorm';
 import { Doctor } from '../doctor/doctor.entity';
 import dayjs from 'dayjs';
 
@@ -220,5 +220,13 @@ async checkAvailability(doctorId: string, timeSlot: string) {
     timeSlot: requested.toISOString(),
   });
 }
+async searchAppointmentsByPatientName(name: string) {
+  return this.appointmentRepo.find({
+    where: { patientName: ILike(`%${name}%`) }, 
+    order: { timeSlot: 'ASC' },
+    relations: ['doctor'],
+  });
+}
+
 
 }
