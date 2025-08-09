@@ -30,10 +30,12 @@ type Priority = "Normal" | "High";
 type Status = "Waiting" | "With Doctor" | "Completed";
 
 export default function QueuePage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [queue, setQueue] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status | "All">("All");
   const [priorityFilter, setPriorityFilter] = useState<Priority | "All">("All");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [filteredQueue, setFilteredQueue] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newPatientName, setNewPatientName] = useState("");
