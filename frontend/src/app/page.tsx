@@ -8,6 +8,13 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
+  useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    router.push('/dashboard/queue');
+  }
+}, [router]);
+
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +46,7 @@ export default function LoginPage() {
       const endpoint = isRegister ? '/auth/register' : '/auth/login';
       const res = await API.post(endpoint, { username, password });
       localStorage.setItem('token', res.data.access_token);
-      router.push('/dashboard/doctors');
+      router.push('/dashboard/queue');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Something went wrong');
     } finally {
