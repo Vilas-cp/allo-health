@@ -28,6 +28,7 @@ import {
   Loader2
 } from "lucide-react";
 import API from "../../../lib/api";
+import toast from "react-hot-toast";
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -58,7 +59,7 @@ export default function AppointmentsPage() {
         );
       }
     } catch (err) {
-      console.error("Error fetching appointments", err);
+      toast.error("Error fetching appointments");
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export default function AppointmentsPage() {
   const bookAppointment = async () => {
     try {
       if (!form.doctorId) {
-        alert("Please select a doctor before booking.");
+        toast.error("Please select a doctor before booking.");
         return;
       }
       await API.post("/appointments", form);
@@ -93,7 +94,7 @@ export default function AppointmentsPage() {
       setIsDialogOpen(false);
       fetchAppointments(searchName);
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Error booking appointment");
+       toast.error(err?.response?.data?.message || "Error booking appointment");
     }
   };
 
@@ -109,7 +110,7 @@ export default function AppointmentsPage() {
             timeSlot: appt.timeSlot,
           });
         } catch (err: any) {
-          alert(err?.response?.data?.message || "Time slot is not available");
+          toast.error(err?.response?.data?.message || "Time slot is not available");
           return;
         }
       }
@@ -117,7 +118,7 @@ export default function AppointmentsPage() {
       await API.put(`/appointments/${id}/status`, { status });
       fetchAppointments(searchName);
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Error updating status");
+      toast.error(err?.response?.data?.message || "Error updating status");
     }
   };
 
@@ -126,7 +127,7 @@ export default function AppointmentsPage() {
     const selected = new Date(newTime);
 
     if (selected.getTime() < now.getTime()) {
-      alert("Please select a future time.");
+      toast.error("Please select a future time.");
       return;
     }
 
@@ -134,7 +135,7 @@ export default function AppointmentsPage() {
       await API.put(`/appointments/${id}/reschedule`, { timeSlot: newTime });
       fetchAppointments(searchName);
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Error rescheduling appointment");
+      toast.error(err?.response?.data?.message || "Error rescheduling appointment");
     }
   };
 
@@ -143,7 +144,7 @@ export default function AppointmentsPage() {
       await API.put(`/appointments/${id}/cancel`);
       fetchAppointments(searchName);
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Error cancelling appointment");
+      toast.error(err?.response?.data?.message || "Error cancelling appointment");
     }
   };
 

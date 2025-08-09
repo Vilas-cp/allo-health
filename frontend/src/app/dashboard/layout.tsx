@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Toaster } from 'react-hot-toast';
 import { 
   LayoutDashboard,
   UserRound,
@@ -33,6 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-slate-50">
+          <Toaster position="top-right"/>
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 shadow-sm flex flex-col">
         <div className="p-6">
