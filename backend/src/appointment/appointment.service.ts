@@ -5,9 +5,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Appointment } from './appointment.entity';
-import { Repository, Not, Between, ILike } from 'typeorm';
+import { Repository, Between, ILike } from 'typeorm';
 import { Doctor } from '../doctor/doctor.entity';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class AppointmentService {
@@ -17,83 +22,92 @@ export class AppointmentService {
     @InjectRepository(Doctor)
     private doctorRepo: Repository<Doctor>,
   ) {}
+
   private BUFFER_MS = 30 * 60 * 1000;
 
+  /**
+   * Normalizes incoming timeSlot to UTC before storage.
+   */
+  private normalizeToUTC(timeSlot: string) {
+    const parsed = dayjs(timeSlot);
+    if (!parsed.isValid()) throw new BadRequestException('Invalid timeSlot');
+    return parsed.utc();
+  }
+
   async bookAppointment(data: {
-  patientName: string;
-  doctorId: string;
-  timeSlot: string; // ISO string
-}) {
-  const doctor = await this.doctorRepo.findOne({
-    where: { id: data.doctorId },
-  });
-  if (!doctor) throw new NotFoundException('Doctor not found');
+    patientName: string;
+    doctorId: string;
+    timeSlot: string; // ISO string (local or with offset)
+  }) {
+    const doctor = await this.doctorRepo.findOne({
+      where: { id: data.doctorId },
+    });
+    if (!doctor) throw new NotFoundException('Doctor not found');
 
-  const requested = dayjs(data.timeSlot);
-  if (!requested.isValid())
-    throw new BadRequestException('Invalid timeSlot');
+    const requestedUTC = this.normalizeToUTC(data.timeSlot);
+    const nowUTC = dayjs.utc();
+    if (requestedUTC.isBefore(nowUTC)) {
+      throw new BadRequestException('Cannot book an appointment in the past.');
+    }
 
-  const now = dayjs();
-  if (requested.isBefore(now)) {
-    throw new BadRequestException('Cannot book an appointment in the past.');
-  }
+    // Check if doctor is available on requested local day
+    const requestedLocal = requestedUTC.local();
+    const dayName = requestedLocal.format('dddd');
+    if (!doctor.availability.includes(dayName)) {
+      throw new BadRequestException(`Doctor is not available on ${dayName}`);
+    }
 
-  // Check if doctor is available on requested day
-  const dayName = requested.format('dddd');
-  if (!doctor.availability.includes(dayName)) {
-    throw new BadRequestException(`Doctor is not available on ${dayName}`);
-  }
+    // Check working hours for that day
+    const hours = doctor.workingHours?.[dayName];
+    if (!hours) {
+      throw new BadRequestException(`Doctor has no working hours set for ${dayName}`);
+    }
 
-  // Check working hours for that day
-  const hours = doctor.workingHours?.[dayName];
-  if (!hours) {
-    throw new BadRequestException(`Doctor has no working hours set for ${dayName}`);
-  }
+    const [startTime, endTime] = hours.split('-').map(s => s.trim()); // e.g. ["09:00", "17:00"]
+    const startLocal = requestedLocal.set('hour', parseInt(startTime.split(':')[0]))
+                                     .set('minute', parseInt(startTime.split(':')[1]));
+    const endLocal = requestedLocal.set('hour', parseInt(endTime.split(':')[0]))
+                                   .set('minute', parseInt(endTime.split(':')[1]));
 
-  const [startTime, endTime] = hours.split('-'); // e.g. ["09:00", "17:00"]
-  const appointmentTime = requested.format('HH:mm');
-
-  if (
-    appointmentTime < startTime ||
-    appointmentTime >= endTime
-  ) {
-    throw new BadRequestException(
-      `Appointment time must be within working hours: ${hours}`
-    );
-  }
-
-  // Check for conflicting appointments (±30 minutes)
-  const BUFFER_MS = 30 * 60 * 1000;
-  const existing = await this.appointmentRepo.find({
-    where: { doctor: { id: data.doctorId }, status: 'Booked' },
-  });
-
-  for (const appt of existing) {
-    const existingTime = dayjs(appt.timeSlot);
-    const diff = Math.abs(existingTime.diff(requested));
-    if (diff < BUFFER_MS) {
+    if (requestedLocal.isBefore(startLocal) || !requestedLocal.isBefore(endLocal)) {
       throw new BadRequestException(
-        'Doctor not available at this time (conflicts with another appointment).',
+        `Appointment time must be within working hours: ${hours}`
       );
     }
+
+    // Check for conflicting appointments in UTC
+    const startBuffer = requestedUTC.subtract(this.BUFFER_MS, 'millisecond').toDate();
+    const endBuffer = requestedUTC.add(this.BUFFER_MS, 'millisecond').toDate();
+
+    const clash = await this.appointmentRepo.findOne({
+      where: {
+        doctor: { id: data.doctorId },
+        status: 'Booked',
+        timeSlot: Between(startBuffer, endBuffer),
+      },
+    });
+    if (clash) {
+      throw new BadRequestException('Doctor not available at this time (conflicts with another appointment).');
+    }
+
+    const appointment = this.appointmentRepo.create({
+      patientName: data.patientName,
+      doctor,
+      timeSlot: requestedUTC.toISOString(), // store in UTC
+      status: 'Booked',
+    });
+
+    return this.appointmentRepo.save(appointment);
   }
-
-  const appointment = this.appointmentRepo.create({
-    patientName: data.patientName,
-    doctor,
-    timeSlot: requested.toISOString(),
-    status: 'Booked',
-  });
-
-  return this.appointmentRepo.save(appointment);
-}
 
   async getAllAppointments() {
     return this.appointmentRepo.find({ order: { createdAt: 'DESC' } });
   }
-async checkAvailability(doctorId: string, timeSlot: string) {
-    const start = new Date(new Date(timeSlot).getTime() - 30 * 60000);
-    const end = new Date(new Date(timeSlot).getTime() + 30 * 60000);
+
+  async checkAvailability(doctorId: string, timeSlot: string) {
+    const requestedUTC = this.normalizeToUTC(timeSlot);
+    const start = requestedUTC.subtract(this.BUFFER_MS, 'millisecond').toDate();
+    const end = requestedUTC.add(this.BUFFER_MS, 'millisecond').toDate();
 
     const clash = await this.appointmentRepo.findOne({
       where: {
@@ -109,124 +123,105 @@ async checkAvailability(doctorId: string, timeSlot: string) {
 
     return { available: true };
   }
-  
- async updateStatus(id: string, status: string) {
-  const appt = await this.appointmentRepo.findOne({
-    where: { id },
-    relations: ['doctor'],
-  });
 
-  if (!appt) {
-    throw new NotFoundException('Appointment not found');
-  }
-
-  // If changing to "Booked", run the same availability check
-  if (status === 'Booked') {
-    const conflicting = await this.appointmentRepo.findOne({
-      where: {
-        doctor: { id: appt.doctor.id },
-        status: 'Booked',
-        timeSlot: Between(
-          new Date(new Date(appt.timeSlot).getTime() - 30 * 60000),
-          new Date(new Date(appt.timeSlot).getTime() + 30 * 60000),
-        ),
-      },
+  async updateStatus(id: string, status: string) {
+    const appt = await this.appointmentRepo.findOne({
+      where: { id },
+      relations: ['doctor'],
     });
+    if (!appt) throw new NotFoundException('Appointment not found');
 
-    if (conflicting) {
-      throw new BadRequestException(
-        'Doctor is already booked around this time (±30 min).'
-      );
+    if (status === 'Booked') {
+      const start = dayjs.utc(appt.timeSlot).subtract(this.BUFFER_MS, 'millisecond').toDate();
+      const end = dayjs.utc(appt.timeSlot).add(this.BUFFER_MS, 'millisecond').toDate();
+
+      const conflicting = await this.appointmentRepo.findOne({
+        where: {
+          doctor: { id: appt.doctor.id },
+          status: 'Booked',
+          timeSlot: Between(start, end),
+        },
+      });
+
+      if (conflicting) {
+        throw new BadRequestException('Doctor is already booked around this time (±30 min).');
+      }
+
+      if (dayjs.utc(appt.timeSlot).isBefore(dayjs.utc())) {
+        throw new BadRequestException('Cannot revert to booked for a past time.');
+      }
     }
 
-    // Also make sure it's not in the past
-    if (new Date(appt.timeSlot).getTime() < Date.now()) {
-      throw new BadRequestException('Cannot revert to booked for a past time.');
-    }
+    appt.status = status;
+    return await this.appointmentRepo.save(appt);
   }
-
-  appt.status = status;
-  return await this.appointmentRepo.save(appt);
-}
-
 
   async cancel(id: string) {
     return this.updateStatus(id, 'Cancelled');
   }
 
- async reschedule(id: string, newTime: string) {
-  const appt = await this.appointmentRepo.findOne({
-    where: { id },
-    relations: ['doctor'],
-  });
-  if (!appt) throw new NotFoundException('Appointment not found');
+  async reschedule(id: string, newTime: string) {
+    const appt = await this.appointmentRepo.findOne({
+      where: { id },
+      relations: ['doctor'],
+    });
+    if (!appt) throw new NotFoundException('Appointment not found');
 
-  const requested = dayjs(newTime);
-  const now = dayjs();
+    const requestedUTC = this.normalizeToUTC(newTime);
+    const nowUTC = dayjs.utc();
+    if (requestedUTC.isBefore(nowUTC)) {
+      throw new BadRequestException('Cannot select a past time');
+    }
 
-  if (!requested.isValid()) {
-    throw new BadRequestException('Invalid newTime');
-  }
+    const requestedLocal = requestedUTC.local();
+    const doctor = appt.doctor;
 
-  if (requested.isBefore(now)) {
-    throw new BadRequestException('Cannot select a past time');
-  }
+    const dayName = requestedLocal.format('dddd');
+    if (!doctor.availability.includes(dayName)) {
+      throw new BadRequestException(`Doctor is not available on ${dayName}`);
+    }
 
-  const doctor = appt.doctor;
+    const hours = doctor.workingHours?.[dayName];
+    if (!hours) {
+      throw new BadRequestException(`Doctor has no working hours set for ${dayName}`);
+    }
 
-  // Check if doctor is available on requested day
-  const dayName = requested.format('dddd');
-  if (!doctor.availability.includes(dayName)) {
-    throw new BadRequestException(`Doctor is not available on ${dayName}`);
-  }
+    const [startTime, endTime] = hours.split('-').map(s => s.trim());
+    const startLocal = requestedLocal.set('hour', parseInt(startTime.split(':')[0]))
+                                     .set('minute', parseInt(startTime.split(':')[1]));
+    const endLocal = requestedLocal.set('hour', parseInt(endTime.split(':')[0]))
+                                   .set('minute', parseInt(endTime.split(':')[1]));
 
-  // Check working hours for that day
-  const hours = doctor.workingHours?.[dayName];
-  if (!hours) {
-    throw new BadRequestException(
-      `Doctor has no working hours set for ${dayName}`
-    );
-  }
-
-  const [startTime, endTime] = hours.split('-'); // e.g. ["09:00", "17:00"]
-  const appointmentTime = requested.format('HH:mm');
-
-  if (appointmentTime < startTime || appointmentTime >= endTime) {
-    throw new BadRequestException(
-      `Appointment time must be within working hours: ${hours}`
-    );
-  }
-
-  // Check for conflicting appointments (±30 minutes)
-  const existing = await this.appointmentRepo.find({
-    where: {
-      doctor: { id: doctor.id },
-      status: 'Booked',
-    },
-  });
-
-  for (const other of existing) {
-    if (other.id === id) continue; // skip self
-    const otherTime = dayjs(other.timeSlot);
-    const diff = Math.abs(otherTime.diff(requested));
-    if (diff < this.BUFFER_MS) {
+    if (requestedLocal.isBefore(startLocal) || !requestedLocal.isBefore(endLocal)) {
       throw new BadRequestException(
-        'Doctor not available at this time (conflicts with another appointment).'
+        `Appointment time must be within working hours: ${hours}`
       );
     }
+
+    const startBuffer = requestedUTC.subtract(this.BUFFER_MS, 'millisecond').toDate();
+    const endBuffer = requestedUTC.add(this.BUFFER_MS, 'millisecond').toDate();
+
+    const clash = await this.appointmentRepo.findOne({
+      where: {
+        doctor: { id: doctor.id },
+        status: 'Booked',
+        timeSlot: Between(startBuffer, endBuffer),
+      },
+    });
+    if (clash && clash.id !== id) {
+      throw new BadRequestException('Doctor not available at this time (conflicts with another appointment).');
+    }
+
+    return this.appointmentRepo.update(id, {
+      timeSlot: requestedUTC.toISOString(),
+    });
   }
 
-  return this.appointmentRepo.update(id, {
-    timeSlot: requested.toISOString(),
-  });
-}
-async searchAppointmentsByPatientName(name: string) {
-  return this.appointmentRepo.find({
-    where: { patientName: ILike(`%${name}%`) }, 
-    order: { timeSlot: 'ASC' },
-    relations: ['doctor'],
-  });
-}
-
-
+  async searchAppointmentsByPatientName(name: string) {
+    return this.appointmentRepo.find({
+      where: { patientName: ILike(`%${name}%`) },
+      order: { timeSlot: 'ASC' },
+      relations: ['doctor'],
+    });
+  }
 }

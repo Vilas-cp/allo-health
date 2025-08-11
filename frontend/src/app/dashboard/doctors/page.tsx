@@ -790,7 +790,7 @@ export default function DoctorsPage() {
                   <CardTitle className="text-lg">
                     {scheduleData.doctor?.name}
                   </CardTitle>
-                  <div className="flex items-center gap-4">
+                  {/* <div className="flex items-center gap-4">
                     <Badge
                       variant={scheduleData.isFreeNow ? "default" : "secondary"}
                       className="flex items-center gap-2"
@@ -806,7 +806,7 @@ export default function DoctorsPage() {
                         ? "Available Now"
                         : `Busy for ${scheduleData.timeUntilFreeMinutes} minutes`}
                     </Badge>
-                  </div>
+                  </div> */}
                 </CardHeader>
               </Card>
 
@@ -837,30 +837,11 @@ export default function DoctorsPage() {
                                   {appointment.patientName}
                                 </p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>
-                                    {(() => {
-                                      const [datePart] =
-                                        appointment.timeSlot.split("T");
-                                      const [year, month, day] =
-                                        datePart.split("-");
-                                      return `${day}/${month}/${year}`;
-                                    })()}
-                                  </span>
-                                  <Clock className="h-4 w-4" />
-                                  <span>
-                                    {(() => {
-                                      const [, timePart] =
-                                        appointment.timeSlot.split("T");
-                                      const [hour, minute, second] = timePart
-                                        .replace("Z", "")
-                                        .split(":");
-                                      return `${hour}:${minute}:${
-                                        second.split(".")[0]
-                                      }`;
-                                    })()}
-                                  </span>
-                                </div>
+                                <Calendar className="h-4 w-4" />
+                                <span>{new Date(appointment.timeSlot).toLocaleDateString()}</span>
+                                <Clock className="h-4 w-4" />
+                                <span>{new Date(appointment.timeSlot).toLocaleTimeString()}</span>
+                              </div>
                               </div>
                             </div>
                           </div>
