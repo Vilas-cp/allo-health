@@ -53,10 +53,10 @@ export default function AppointmentsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const convertToUTCISO = (datetimeLocal: string) => {
-  if (!datetimeLocal) return "";
-  const date = new Date(datetimeLocal);
-  return date.toISOString(); // Converts local time → UTC ISO string
-};
+    if (!datetimeLocal) return "";
+    const date = new Date(datetimeLocal);
+    return date.toISOString(); // Converts local time → UTC ISO string
+  };
 
   const fetchAppointments = async (name = "") => {
     setLoading(true);
@@ -188,17 +188,17 @@ export default function AppointmentsPage() {
         toast.error("Please select a doctor before booking.");
         return;
       }
-       await API.post("/appointments", {
-      ...form,
-      timeSlot: convertToUTCISO(form.timeSlot), 
-    });
+      await API.post("/appointments", {
+        ...form,
+        timeSlot: convertToUTCISO(form.timeSlot),
+      });
       setForm({ patientName: "", doctorId: "", timeSlot: "" });
       setIsDialogOpen(false);
 
       fetchAppointments(searchName);
     } // eslint-disable-next-line @typescript-eslint/no-explicit-any
      catch (err: any) {
-     
+
       toast.error(err?.response?.data?.message || "Error booking appointment");
     }
   };
@@ -214,9 +214,10 @@ export default function AppointmentsPage() {
             doctorId: appt.doctor.id,
             timeSlot: appt.timeSlot,
           });
-        } // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+          
+        } // eslint-disable-next-line @typescript-eslint/no-explicit-any
         catch (err: any) {
-         
+          
           toast.error(
             err?.response?.data?.message || "Time slot is not available"
           );
@@ -226,41 +227,43 @@ export default function AppointmentsPage() {
 
       await API.put(`/appointments/${id}/status`, { status });
       fetchAppointments(searchName);
-    }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } // eslint-disable-next-line @typescript-eslint/no-explicit-any
      catch (err: any) {
-
+     
       toast.error(err?.response?.data?.message || "Error updating status");
     }
   };
 
- const reschedule = async (id: string, newTime: string) => {
-  const now = new Date();
-  const selected = new Date(newTime);
+  const reschedule = async (id: string, newTime: string) => {
+    const now = new Date();
+    const selected = new Date(newTime);
 
-  if (selected.getTime() < now.getTime()) {
-    toast.error("Please select a future time.");
-    return;
-  }
+    if (selected.getTime() < now.getTime()) {
+      toast.error("Please select a future time.");
+      return;
+    }
 
-  try {
-    await API.put(`/appointments/${id}/reschedule`, {
-      timeSlot: convertToUTCISO(newTime),
-    });
-    fetchAppointments(searchName);
-  }  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  catch (err: any) {
-    toast.error(err?.response?.data?.message || "Error rescheduling appointment");
-  }
-};
+    try {
+      await API.put(`/appointments/${id}/reschedule`, {
+        timeSlot: convertToUTCISO(newTime),
+      });
+      fetchAppointments(searchName);
+    } // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+    catch (err: any) {
+     
+      toast.error(
+        err?.response?.data?.message || "Error rescheduling appointment"
+      );
+    }
+  };
 
   const cancel = async (id: string) => {
     try {
       await API.put(`/appointments/${id}/cancel`);
       fetchAppointments(searchName);
-    }      // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+    } // eslint-disable-next-line @typescript-eslint/no-explicit-any 
     catch (err: any) {
-
+      
       toast.error(
         err?.response?.data?.message || "Error cancelling appointment"
       );
@@ -567,7 +570,17 @@ export default function AppointmentsPage() {
                         <div className="flex items-center space-x-2">
                           <Clock className="w-4 h-4 text-slate-500" />
                           <span className="text-slate-600">
-                            {new Date(appt.timeSlot).toLocaleString()}
+                            {(() => {
+                              const [datePart, timePart] =
+                                appt.timeSlot.split("T");
+                              const [year, month, day] = datePart.split("-");
+                              const [hour, minute, second] = timePart
+                                .replace("Z", "")
+                                .split(":");
+                              return `${day}/${month}/${year}, ${hour}:${minute}:${
+                                second.split(".")[0]
+                              }`;
+                            })()}
                           </span>
                         </div>
                       </td>

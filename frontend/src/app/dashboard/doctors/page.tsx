@@ -820,9 +820,8 @@ export default function DoctorsPage() {
                 <CardContent>
                   {scheduleData.upcoming && scheduleData.upcoming.length > 0 ? (
                     <div className="space-y-3 max-h-[170px] overflow-y-scroll">
-                  
                       {scheduleData.upcoming.map(
-                           /*eslint-disable-next-line @typescript-eslint/no-explicit-any*/
+                        /*eslint-disable-next-line @typescript-eslint/no-explicit-any*/
                         (appointment: any, index: number) => (
                           <div
                             key={index}
@@ -837,11 +836,30 @@ export default function DoctorsPage() {
                                   {appointment.patientName}
                                 </p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
-                                <span>{new Date(appointment.timeSlot).toLocaleDateString()}</span>
-                                <Clock className="h-4 w-4" />
-                                <span>{new Date(appointment.timeSlot).toLocaleTimeString()}</span>
-                              </div>
+                                  <Calendar className="h-4 w-4" />
+                                  <span>
+                                    {(() => {
+                                      const [datePart] =
+                                        appointment.timeSlot.split("T");
+                                      const [year, month, day] =
+                                        datePart.split("-");
+                                      return `${day}/${month}/${year}`;
+                                    })()}
+                                  </span>
+                                  <Clock className="h-4 w-4" />
+                                  <span>
+                                    {(() => {
+                                      const [, timePart] =
+                                        appointment.timeSlot.split("T");
+                                      const [hour, minute, second] = timePart
+                                        .replace("Z", "")
+                                        .split(":");
+                                      return `${hour}:${minute}:${
+                                        second.split(".")[0]
+                                      }`;
+                                    })()}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
