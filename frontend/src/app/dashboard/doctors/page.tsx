@@ -42,7 +42,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Clock, MapPin, User, Stethoscope, Plus, Search, Eye, Edit, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  Stethoscope,
+  Plus,
+  Search,
+  Eye,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const daysOfWeek = [
@@ -65,7 +76,7 @@ type DoctorForm = {
 };
 
 export default function DoctorsPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [doctors, setDoctors] = useState<any[]>([]);
   const router = useRouter();
   const [upcomingMap, setUpcomingMap] = useState<Record<string, boolean>>({});
@@ -73,7 +84,7 @@ export default function DoctorsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [scheduleData, setScheduleData] = useState<any>(null);
 
   const [form, setForm] = useState<DoctorForm>({
@@ -124,7 +135,7 @@ export default function DoctorsPage() {
   const fetchDoctors = async () => {
     try {
       const res = await API.get("/doctors");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const docs = res.data.map((doc: any) => ({
         ...doc,
         workingHours: parseWorkingHours(doc.workingHours || {}),
@@ -133,7 +144,7 @@ export default function DoctorsPage() {
 
       const map: Record<string, boolean> = {};
       await Promise.all(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         docs.map(async (doc: any) => {
           try {
             const schedule = await API.get(`/doctors/${doc.id}/schedule`);
@@ -159,7 +170,9 @@ export default function DoctorsPage() {
     currentAvailability: string[],
     currentWorkingHours: Record<string, { start: string; end: string }>,
     setAvailability: (arr: string[]) => void,
-    setWorkingHours: (wh: Record<string, { start: string; end: string }>) => void
+    setWorkingHours: (
+      wh: Record<string, { start: string; end: string }>
+    ) => void
   ) => {
     if (currentAvailability.includes(day)) {
       setAvailability(currentAvailability.filter((d) => d !== day));
@@ -179,7 +192,9 @@ export default function DoctorsPage() {
     for (const day of data.availability) {
       const wh = data.workingHours[day];
       if (!wh || !wh.start || !wh.end || wh.start >= wh.end) {
-        toast.error(`Please enter valid start and end times for ${day} (start must be before end)`);
+        toast.error(
+          `Please enter valid start and end times for ${day} (start must be before end)`
+        );
         return false;
       }
     }
@@ -285,12 +300,16 @@ export default function DoctorsPage() {
     availability: string[];
     workingHours: Record<string, { start: string; end: string }>;
     setAvailability: (arr: string[]) => void;
-    setWorkingHours: (wh: Record<string, { start: string; end: string }>) => void;
+    setWorkingHours: (
+      wh: Record<string, { start: string; end: string }>
+    ) => void;
   }) => {
     return (
       <div className="space-y-4">
         <div>
-          <Label className="text-base font-medium mb-3 block">Available Days</Label>
+          <Label className="text-base font-medium mb-3 block">
+            Available Days
+          </Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {daysOfWeek.map((day) => (
               <div key={day} className="flex items-center space-x-2">
@@ -298,10 +317,19 @@ export default function DoctorsPage() {
                   id={day}
                   checked={availability.includes(day)}
                   onCheckedChange={() =>
-                    toggleDay(day, availability, workingHours, setAvailability, setWorkingHours)
+                    toggleDay(
+                      day,
+                      availability,
+                      workingHours,
+                      setAvailability,
+                      setWorkingHours
+                    )
                   }
                 />
-                <Label htmlFor={day} className="text-sm font-normal cursor-pointer">
+                <Label
+                  htmlFor={day}
+                  className="text-sm font-normal cursor-pointer"
+                >
                   {day}
                 </Label>
               </div>
@@ -311,10 +339,15 @@ export default function DoctorsPage() {
 
         {availability.length > 0 && (
           <div>
-            <Label className="text-base font-medium mb-3 block">Working Hours</Label>
+            <Label className="text-base font-medium mb-3 block">
+              Working Hours
+            </Label>
             <div className="space-y-3">
               {availability.map((day) => (
-                <div key={day} className="flex items-center gap-3 p-3 border rounded-lg">
+                <div
+                  key={day}
+                  className="flex items-center gap-3 p-3 border rounded-lg"
+                >
                   <Label className="w-20 text-sm font-medium">{day}</Label>
                   <div className="flex items-center gap-2 flex-1">
                     <Input
@@ -359,11 +392,29 @@ export default function DoctorsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Available":
-        return <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">Available</Badge>;
+        return (
+          <Badge
+            variant="default"
+            className="bg-green-100 text-green-800 hover:bg-green-100"
+          >
+            Available
+          </Badge>
+        );
       case "Busy":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Busy</Badge>;
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+          >
+            Busy
+          </Badge>
+        );
       default:
-        return <Badge variant="destructive" className="bg-red-400">Unavailable</Badge>;
+        return (
+          <Badge variant="destructive" className="bg-red-400">
+            Unavailable
+          </Badge>
+        );
     }
   };
 
@@ -372,10 +423,14 @@ export default function DoctorsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Doctors Management</h1>
-          <p className="text-muted-foreground">Manage doctor profiles and schedules</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Doctors Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage doctor profiles and schedules
+          </p>
         </div>
-        
+
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2 bg-black text-white">
@@ -410,7 +465,9 @@ export default function DoctorsPage() {
                     id="specialization"
                     placeholder="Cardiology"
                     value={form.specialization}
-                    onChange={(e) => setForm({ ...form, specialization: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, specialization: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -419,7 +476,9 @@ export default function DoctorsPage() {
                     id="gender"
                     placeholder="Male/Female"
                     value={form.gender}
-                    onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, gender: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -428,7 +487,9 @@ export default function DoctorsPage() {
                     id="location"
                     placeholder="Bengaluru"
                     value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, location: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -436,15 +497,24 @@ export default function DoctorsPage() {
               <AvailabilityHoursInput
                 availability={form.availability}
                 workingHours={form.workingHours}
-                setAvailability={(arr) => setForm((prev) => ({ ...prev, availability: arr }))}
-                setWorkingHours={(wh) => setForm((prev) => ({ ...prev, workingHours: wh }))}
+                setAvailability={(arr) =>
+                  setForm((prev) => ({ ...prev, availability: arr }))
+                }
+                setWorkingHours={(wh) =>
+                  setForm((prev) => ({ ...prev, workingHours: wh }))
+                }
               />
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddDialogOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={addDoctor} className="bg-black text-white">Add Doctor</Button>
+                <Button onClick={addDoctor} className="bg-black text-white">
+                  Add Doctor
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -467,7 +537,8 @@ export default function DoctorsPage() {
         <CardHeader>
           <CardTitle>All Doctors</CardTitle>
           <CardDescription>
-            {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found
+            {filteredDoctors.length} doctor
+            {filteredDoctors.length !== 1 ? "s" : ""} found
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -485,7 +556,10 @@ export default function DoctorsPage() {
             <TableBody>
               {filteredDoctors.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     No doctors found. Add a new doctor to get started.
                   </TableCell>
                 </TableRow>
@@ -499,7 +573,9 @@ export default function DoctorsPage() {
                         </div>
                         <div>
                           <p className="font-medium">{doc.name}</p>
-                          <p className="text-sm text-muted-foreground">{doc.gender}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {doc.gender}
+                          </p>
                         </div>
                       </div>
                     </TableCell>
@@ -507,7 +583,9 @@ export default function DoctorsPage() {
                       <div className="space-y-1">
                         {getStatusBadge(doc.status)}
                         {doc.nextAvailable && (
-                          <p className="text-xs text-muted-foreground">{doc.nextAvailable}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {doc.nextAvailable}
+                          </p>
                         )}
                       </div>
                     </TableCell>
@@ -529,14 +607,17 @@ export default function DoctorsPage() {
                           <div key={day} className="flex items-center gap-2">
                             <Clock className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs">
-                              {day}: {doc.workingHours?.[day] 
+                              {day}:{" "}
+                              {doc.workingHours?.[day]
                                 ? `${doc.workingHours[day].start} - ${doc.workingHours[day].end}`
                                 : "N/A"}
                             </span>
                           </div>
                         ))}
                         {doc.availability?.length > 2 && (
-                          <p className="text-xs text-muted-foreground">+{doc.availability.length - 2} more</p>
+                          <p className="text-xs text-muted-foreground">
+                            +{doc.availability.length - 2} more
+                          </p>
                         )}
                       </div>
                     </TableCell>
@@ -549,7 +630,7 @@ export default function DoctorsPage() {
                           className="h-8 w-28 bg-black text-white p-0"
                         >
                           Schedule
-                          <Eye className="h-4 w-4"/>
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
@@ -559,9 +640,13 @@ export default function DoctorsPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <AlertDialog >
+                        <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
@@ -569,7 +654,9 @@ export default function DoctorsPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Doctor</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete this doctor? This action cannot be undone and will also delete all future appointments.
+                                Are you sure you want to delete this doctor?
+                                This action cannot be undone and will also
+                                delete all future appointments.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -612,7 +699,9 @@ export default function DoctorsPage() {
                 <Input
                   id="edit-name"
                   value={editForm.name}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -620,7 +709,12 @@ export default function DoctorsPage() {
                 <Input
                   id="edit-specialization"
                   value={editForm.specialization}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, specialization: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      specialization: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -628,7 +722,9 @@ export default function DoctorsPage() {
                 <Input
                   id="edit-gender"
                   value={editForm.gender}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, gender: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, gender: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -636,7 +732,12 @@ export default function DoctorsPage() {
                 <Input
                   id="edit-location"
                   value={editForm.location}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, location: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
+                  }
                 />
               </div>
             </div>
@@ -644,22 +745,34 @@ export default function DoctorsPage() {
             <AvailabilityHoursInput
               availability={editForm.availability}
               workingHours={editForm.workingHours}
-              setAvailability={(arr) => setEditForm((prev) => ({ ...prev, availability: arr }))}
-              setWorkingHours={(wh) => setEditForm((prev) => ({ ...prev, workingHours: wh }))}
+              setAvailability={(arr) =>
+                setEditForm((prev) => ({ ...prev, availability: arr }))
+              }
+              setWorkingHours={(wh) =>
+                setEditForm((prev) => ({ ...prev, workingHours: wh }))
+              }
             />
 
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button onClick={saveDoctor} className="bg-black text-white">Save Changes</Button>
+              <Button onClick={saveDoctor} className="bg-black text-white">
+                Save Changes
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Schedule Dialog */}
-      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+      <Dialog
+        open={isScheduleDialogOpen}
+        onOpenChange={setIsScheduleDialogOpen}
+      >
         <DialogContent className="max-w-3xl bg-white">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -674,11 +787,24 @@ export default function DoctorsPage() {
             <div className="space-y-6 py-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">{scheduleData.doctor?.name}</CardTitle>
+                  <CardTitle className="text-lg">
+                    {scheduleData.doctor?.name}
+                  </CardTitle>
                   <div className="flex items-center gap-4">
-                    <Badge variant={scheduleData.isFreeNow ? "default" : "secondary"} className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${scheduleData.isFreeNow ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                      {scheduleData.isFreeNow ? "Available Now" : `Busy for ${scheduleData.timeUntilFreeMinutes} minutes`}
+                    <Badge
+                      variant={scheduleData.isFreeNow ? "default" : "secondary"}
+                      className="flex items-center gap-2"
+                    >
+                      <div
+                        className={`h-2 w-2 rounded-full ${
+                          scheduleData.isFreeNow
+                            ? "bg-green-500"
+                            : "bg-yellow-500"
+                        }`}
+                      />
+                      {scheduleData.isFreeNow
+                        ? "Available Now"
+                        : `Busy for ${scheduleData.timeUntilFreeMinutes} minutes`}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -694,25 +820,51 @@ export default function DoctorsPage() {
                 <CardContent>
                   {scheduleData.upcoming && scheduleData.upcoming.length > 0 ? (
                     <div className="space-y-3 max-h-[170px] overflow-y-scroll">
-                        {/*eslint-disable-next-line @typescript-eslint/no-explicit-any*/}
-                      {scheduleData.upcoming.map((appointment: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <User className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{appointment.patientName}</p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
-                                <span>{new Date(appointment.timeSlot).toLocaleDateString()}</span>
-                                <Clock className="h-4 w-4" />
-                                <span>{new Date(appointment.timeSlot).toLocaleTimeString()}</span>
+                      {/*eslint-disable-next-line @typescript-eslint/no-explicit-any*/}
+                      {scheduleData.upcoming.map(
+                        (appointment: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 border rounded-lg"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <User className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium">
+                                  {appointment.patientName}
+                                </p>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>
+                                    {(() => {
+                                      const [datePart] =
+                                        appointment.timeSlot.split("T");
+                                      const [year, month, day] =
+                                        datePart.split("-");
+                                      return `${day}/${month}/${year}`;
+                                    })()}
+                                  </span>
+                                  <Clock className="h-4 w-4" />
+                                  <span>
+                                    {(() => {
+                                      const [, timePart] =
+                                        appointment.timeSlot.split("T");
+                                      const [hour, minute, second] = timePart
+                                        .replace("Z", "")
+                                        .split(":");
+                                      return `${hour}:${minute}:${
+                                        second.split(".")[0]
+                                      }`;
+                                    })()}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
