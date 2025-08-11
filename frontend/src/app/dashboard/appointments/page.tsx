@@ -187,8 +187,9 @@ export default function AppointmentsPage() {
       setIsDialogOpen(false);
 
       fetchAppointments(searchName);
-    } catch (err: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     catch (err: any) {
+     
       toast.error(err?.response?.data?.message || "Error booking appointment");
     }
   };
@@ -204,8 +205,9 @@ export default function AppointmentsPage() {
             doctorId: appt.doctor.id,
             timeSlot: appt.timeSlot,
           });
-        } catch (err: any) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+        catch (err: any) {
+         
           toast.error(
             err?.response?.data?.message || "Time slot is not available"
           );
@@ -215,8 +217,10 @@ export default function AppointmentsPage() {
 
       await API.put(`/appointments/${id}/status`, { status });
       fetchAppointments(searchName);
-    } catch (err: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     catch (err: any) {
+
       toast.error(err?.response?.data?.message || "Error updating status");
     }
   };
@@ -233,8 +237,10 @@ export default function AppointmentsPage() {
     try {
       await API.put(`/appointments/${id}/reschedule`, { timeSlot: newTime });
       fetchAppointments(searchName);
-    } catch (err: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+    catch (err: any) {
+ 
       toast.error(
         err?.response?.data?.message || "Error rescheduling appointment"
       );
@@ -245,8 +251,9 @@ export default function AppointmentsPage() {
     try {
       await API.put(`/appointments/${id}/cancel`);
       fetchAppointments(searchName);
-    } catch (err: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }      // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+    catch (err: any) {
+
       toast.error(
         err?.response?.data?.message || "Error cancelling appointment"
       );

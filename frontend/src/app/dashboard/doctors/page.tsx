@@ -820,8 +820,9 @@ export default function DoctorsPage() {
                 <CardContent>
                   {scheduleData.upcoming && scheduleData.upcoming.length > 0 ? (
                     <div className="space-y-3 max-h-[170px] overflow-y-scroll">
-                      {/*eslint-disable-next-line @typescript-eslint/no-explicit-any*/}
+                  
                       {scheduleData.upcoming.map(
+                           /*eslint-disable-next-line @typescript-eslint/no-explicit-any*/
                         (appointment: any, index: number) => (
                           <div
                             key={index}
