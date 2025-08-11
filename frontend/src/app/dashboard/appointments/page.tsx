@@ -570,17 +570,7 @@ export default function AppointmentsPage() {
                         <div className="flex items-center space-x-2">
                           <Clock className="w-4 h-4 text-slate-500" />
                           <span className="text-slate-600">
-                            {(() => {
-                              const [datePart, timePart] =
-                                appt.timeSlot.split("T");
-                              const [year, month, day] = datePart.split("-");
-                              const [hour, minute, second] = timePart
-                                .replace("Z", "")
-                                .split(":");
-                              return `${day}/${month}/${year}, ${hour}:${minute}:${
-                                second.split(".")[0]
-                              }`;
-                            })()}
+                           {new Date(appt.timeSlot).toLocaleString()}
                           </span>
                         </div>
                       </td>
