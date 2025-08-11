@@ -25,7 +25,8 @@ import {
   Save, 
   CheckCircle, 
   AlertTriangle,
-  Loader2
+  Loader2,
+  Filter
 } from "lucide-react";
 import API from "../../../lib/api";
 import toast from "react-hot-toast";
@@ -34,6 +35,8 @@ export default function AppointmentsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [appointments, setAppointments] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [filteredAppointments, setFilteredAppointments] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [doctors, setDoctors] = useState<any[]>([]);
   const [form, setForm] = useState({
     patientName: "",
@@ -41,6 +44,11 @@ export default function AppointmentsPage() {
     timeSlot: "",
   });
   const [searchName, setSearchName] = useState("");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [customDateRange, setCustomDateRange] = useState({
+    startDate: "",
+    endDate: ""
+  });
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -74,6 +82,69 @@ export default function AppointmentsPage() {
     setDoctors(res.data);
   };
 
+  // Filter appointments by date
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+  const filterAppointmentsByDate = (appointments: any[]) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - today.getDay());
+    const thisWeekEnd = new Date(thisWeekStart);
+    thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    switch (dateFilter) {
+      case "today":
+        return appointments.filter(appt => {
+          const apptDate = new Date(appt.timeSlot);
+          const apptDay = new Date(apptDate.getFullYear(), apptDate.getMonth(), apptDate.getDate());
+          return apptDay.getTime() === today.getTime();
+        });
+      case "tomorrow":
+        return appointments.filter(appt => {
+          const apptDate = new Date(appt.timeSlot);
+          const apptDay = new Date(apptDate.getFullYear(), apptDate.getMonth(), apptDate.getDate());
+          return apptDay.getTime() === tomorrow.getTime();
+        });
+      case "this-week":
+        return appointments.filter(appt => {
+          const apptDate = new Date(appt.timeSlot);
+          return apptDate >= thisWeekStart && apptDate <= thisWeekEnd;
+        });
+      case "this-month":
+        return appointments.filter(appt => {
+          const apptDate = new Date(appt.timeSlot);
+          return apptDate >= thisMonthStart && apptDate <= thisMonthEnd;
+        });
+      case "custom":
+        if (customDateRange.startDate && customDateRange.endDate) {
+          const startDate = new Date(customDateRange.startDate);
+          const endDate = new Date(customDateRange.endDate);
+          endDate.setHours(23, 59, 59, 999); // Include the entire end date
+          return appointments.filter(appt => {
+            const apptDate = new Date(appt.timeSlot);
+            return apptDate >= startDate && apptDate <= endDate;
+          });
+        }
+        return appointments;
+      case "past":
+        return appointments.filter(appt => {
+          const apptDate = new Date(appt.timeSlot);
+          return apptDate < now;
+        });
+      case "upcoming":
+        return appointments.filter(appt => {
+          const apptDate = new Date(appt.timeSlot);
+          return apptDate >= now;
+        });
+      default:
+        return appointments;
+    }
+  };
+
   useEffect(() => {
     fetchAppointments();
     fetchDoctors();
@@ -86,6 +157,14 @@ export default function AppointmentsPage() {
     }, 500);
     return () => clearTimeout(delayDebounce);
   }, [searchName]);
+
+  // Filter appointments whenever appointments or filters change
+  useEffect(() => {
+    const filtered = filterAppointmentsByDate(appointments);
+    // Sort by date (most recent first)
+    filtered.sort((a, b) => new Date(b.timeSlot).getTime() - new Date(a.timeSlot).getTime());
+    setFilteredAppointments(filtered);
+  }, [appointments, dateFilter, customDateRange]);
 
   const bookAppointment = async () => {
     try {
@@ -113,7 +192,6 @@ export default function AppointmentsPage() {
         try {
           await API.post("/appointments/check", {
             doctorId: appt.doctor.id,
-            
             timeSlot: appt.timeSlot,
           });
         }  // eslint-disable-next-line @typescript-eslint/no-explicit-any 
@@ -186,10 +264,10 @@ export default function AppointmentsPage() {
 
   const getAppointmentCounts = () => {
     return {
-      total: appointments.length,
-      booked: appointments.filter(a => a.status === "Booked").length,
-      completed: appointments.filter(a => a.status === "Completed").length,
-      cancelled: appointments.filter(a => a.status === "Cancelled").length
+      total: filteredAppointments.length,
+      booked: filteredAppointments.filter(a => a.status === "Booked").length,
+      completed: filteredAppointments.filter(a => a.status === "Completed").length,
+      cancelled: filteredAppointments.filter(a => a.status === "Cancelled").length
     };
   };
 
@@ -249,27 +327,87 @@ export default function AppointmentsPage() {
       {/* Controls Section */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
         <div className="p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            {/* Search */}
-            <div className="relative flex-1 lg:max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="search"
-                placeholder="Search patient by name..."
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent focus:bg-white transition-all duration-200"
-              />
+          <div className="flex flex-col space-y-4">
+            {/* Top Row: Search and Add Button */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+              {/* Search */}
+              <div className="relative flex-1 lg:max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="search"
+                  placeholder="Search patient by name..."
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent focus:bg-white transition-all duration-200"
+                />
+              </div>
+
+              {/* Add Appointment Button */}
+              <button
+                onClick={() => setIsDialogOpen(true)}
+                className="inline-flex items-center space-x-2 px-4 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Book Appointment</span>
+              </button>
             </div>
 
-            {/* Add Appointment Button */}
-            <button
-              onClick={() => setIsDialogOpen(true)}
-              className="inline-flex items-center space-x-2 px-4 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Book Appointment</span>
-            </button>
+            {/* Date Filters */}
+            <div className="border-t border-slate-200 pt-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <Filter className="w-4 h-4 text-slate-600" />
+                <span className="text-sm font-medium text-slate-700">Filter by Date:</span>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  { value: "all", label: "All Appointments" },
+                  { value: "today", label: "Today" },
+                  { value: "tomorrow", label: "Tomorrow" },
+                  { value: "this-week", label: "This Week" },
+                  { value: "this-month", label: "This Month" },
+                  { value: "upcoming", label: "Upcoming" },
+                  { value: "past", label: "Past" },
+                  { value: "custom", label: "Custom Range" }
+                ].map(filter => (
+                  <button
+                    key={filter.value}
+                    onClick={() => setDateFilter(filter.value)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      dateFilter === filter.value
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Date Range */}
+              {dateFilter === "custom" && (
+                <div className="flex flex-col sm:flex-row gap-3 p-4 bg-slate-50 rounded-xl">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">From Date</label>
+                    <input
+                      type="date"
+                      value={customDateRange.startDate}
+                      onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">To Date</label>
+                    <input
+                      type="date"
+                      value={customDateRange.endDate}
+                      onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -301,18 +439,18 @@ export default function AppointmentsPage() {
                     </div>
                   </td>
                 </tr>
-              ) : appointments.length === 0 ? (
+              ) : filteredAppointments.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center p-8">
                     <div className="flex flex-col items-center space-y-2">
                       <Calendar className="w-12 h-12 text-slate-300" />
                       <p className="text-slate-600">No appointments found</p>
-                      <p className="text-sm text-slate-500">Try adjusting your search or book a new appointment</p>
+                      <p className="text-sm text-slate-500">Try adjusting your search or date filters, or book a new appointment</p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                appointments.map((appt) => (
+                filteredAppointments.map((appt) => (
                   <tr key={appt.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center space-x-3">

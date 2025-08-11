@@ -35,6 +35,7 @@ export default function QueuePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status | "All">("All");
   const [priorityFilter, setPriorityFilter] = useState<Priority | "All">("All");
+  const [dateFilter, setDateFilter] = useState<string>("");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [filteredQueue, setFilteredQueue] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -58,7 +59,7 @@ export default function QueuePage() {
     }
   };
 
-  // Filter queue by search term, status, and priority
+  // Filter queue by search term, status, priority, and date
   useEffect(() => {
     let filtered = queue;
 
@@ -79,8 +80,16 @@ export default function QueuePage() {
       filtered = filtered.filter((entry) => entry.priority === priorityFilter);
     }
 
+    // Filter by date
+    if (dateFilter) {
+      filtered = filtered.filter((entry) => {
+        const entryDate = new Date(entry.arrivalTime).toISOString().split('T')[0];
+        return entryDate === dateFilter;
+      });
+    }
+
     setFilteredQueue(filtered);
-  }, [searchTerm, statusFilter, priorityFilter, queue]);
+  }, [searchTerm, statusFilter, priorityFilter, dateFilter, queue]);
 
   useEffect(() => {
     fetchQueue();
@@ -291,6 +300,14 @@ export default function QueuePage() {
                 <option value="Normal">Normal</option>
                 <option value="High">High Priority</option>
               </select>
+
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm"
+                placeholder="Filter by date"
+              />
 
               <button
                 onClick={() => setIsDialogOpen(true)}
